@@ -1,0 +1,36 @@
+flowchart TB
+  nav["Navegador"]
+  subgraph dc["Docker Compose - volumen agenda-data"]
+    fe["frontend<br/>nginx :3000<br/>React compilado"]
+    gw["gateway-graphql<br/>:8000"]
+    est["ms-establecimientos<br/>:8081"]
+    ag["ms-agenda<br/>:8080"]
+    op["ms-operaciones<br/>:8082"]
+    rc["ms-relacion-cliente<br/>:8083"]
+    sim["simulador<br/>:8084"]
+    kafka[("Kafka 3.9.0 KRaft<br/>agenda-kafka<br/>:9092 equipo / :29092 interno")]
+    kui["kafka-ui<br/>:8090 -> 8080"]
+    subgraph pg["agenda-postgres :5432 - base citas"]
+      s1[("esquema establecimientos")]
+      s2[("esquema agenda")]
+      s3[("esquema operaciones")]
+      s4[("esquema relacion_cliente")]
+    end
+  end
+  nav -->|"HTTP :3000"| fe
+  fe -->|"nginx: /graphql"| gw
+  gw --> est
+  gw --> ag
+  gw --> op
+  gw --> rc
+  est --- s1
+  ag --- s2
+  op --- s3
+  rc --- s4
+  ag --- kafka
+  op --- kafka
+  rc --- kafka
+  kui --> kafka
+  sim --> est
+  sim --> ag
+  sim --> op

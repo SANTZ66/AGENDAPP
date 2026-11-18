@@ -1,0 +1,23 @@
+sequenceDiagram
+  autonumber
+  participant J as GeneradorRecordatorios
+  participant E as ms-establecimientos
+  participant A as ms-agenda
+  participant S as RelacionService
+  participant C as Clienta
+  participant G as gateway-graphql
+  Note over J: Cada 60 s (espera inicial 30 s)
+  J->>E: GET /establecimientos
+  E-->>J: ventana de confirmacion de cada uno
+  J->>A: GET /citas/proximas?desde&hasta
+  A-->>J: citas agendadas (paginadas)
+  loop cada cita
+    Note over J: Omite si ya esta confirmada,<br/>el establecimiento no se conoce<br/>o esta fuera de la ventana
+    J->>S: recordatorio(establecimientoId, citaId, inicio)
+    Note over S: registrar(): si ya existe (cita_id, tipo)<br/>no inserta (UNIQUE en BD lo garantiza)
+  end
+  C->>G: confirmarCita(citaId), sin sesion
+  G->>A: POST /citas/{id}/confirmacion
+  A-->>G: cita con confirmadaEn
+  G-->>C: Cita
+  Note over A: No publica evento en Kafka

@@ -1,0 +1,20 @@
+flowchart TB
+  ag["ms-agenda (productor)"]
+  op["ms-operaciones"]
+  rc["ms-relacion-cliente"]
+  t1(["citas.agendada"])
+  t2(["citas.completada"])
+  t3(["citas.cancelada"])
+  t4(["inventario.insumo-bajo"])
+  ag ==>|produce| t1
+  ag ==>|produce| t2
+  ag ==>|produce| t3
+  op ==>|produce| t4
+  t2 -->|"grupo: operaciones"| op
+  t1 -->|"grupo: relacion-cliente"| rc
+  t2 -->|"grupo: relacion-cliente"| rc
+  t3 -->|"grupo: relacion-cliente"| rc
+  t4 -->|"grupo: relacion-cliente"| rc
+  op -.->|"tras 3 reintentos"| d1(["citas.completada.DLT"])
+  rc -.->|"tras 3 reintentos"| d1
+  rc -.->|"tras 3 reintentos"| d2(["citas.agendada.DLT<br/>citas.cancelada.DLT<br/>inventario.insumo-bajo.DLT"])

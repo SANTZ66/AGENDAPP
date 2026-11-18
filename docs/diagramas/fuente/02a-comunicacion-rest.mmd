@@ -1,0 +1,19 @@
+flowchart LR
+  subgraph g["gateway-graphql llama a"]
+    g0["gateway-graphql"] --> g1["ms-establecimientos"]
+    g0 --> g2["ms-agenda"]
+    g0 --> g3["ms-operaciones"]
+    g0 --> g4["ms-relacion-cliente"]
+  end
+  subgraph s["simulador llama a"]
+    s0["simulador"] --> s1["ms-establecimientos"]
+    s0 --> s2["ms-agenda"]
+    s0 --> s3["ms-operaciones"]
+  end
+  subgraph o["ms-operaciones llama a"]
+    o0["ms-operaciones"] -->|"GET /servicios/{id}/insumos"| o1["ms-establecimientos"]
+  end
+  subgraph r["ms-relacion-cliente llama a"]
+    r0["ms-relacion-cliente"] -->|"GET /citas/proximas"| r1["ms-agenda"]
+    r0 -->|"GET /establecimientos"| r2["ms-establecimientos"]
+  end
