@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel de operacion · Plataforma de citas</title>
+<style>
+  :root {
+    --tinta: #1c1f22;
+    --suave: #5d6671;
+    --tenue: #8b949e;
+    --linea: #dfe3e8;
+    --fondo: #f4f6f8;
+    --papel: #ffffff;
+    --acento: #0f6e56;
+    --acento-tenue: #e1f2ec;
+    --alerta: #9a4a0b;
+    --alerta-tenue: #fbeedd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--tinta);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px; line-height: 1.5;
+  }
+  header {
+    background: var(--papel); border-bottom: 1px solid var(--linea);
+    padding: 18px 28px; display: flex; flex-wrap: wrap;
+    align-items: center; gap: 18px;
+  }
+  header h1 { font-size: 17px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  header .sub { font-size: 13px; color: var(--tenue); margin: 2px 0 0 0; }
+  .controles { margin-left: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  label { font-size: 12px; color: var(--suave); display: block; margin-bottom: 3px; }
+  select {
+    font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--linea);
+    border-radius: 6px; background: var(--papel); color: var(--tinta); min-width: 190px;
+  }
+  .latido {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--suave); white-space: nowrap;
+  }
+  .punto {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--acento);
+    animation: pulso 2.5s ease-in-out infinite;
+  }
+  @keyframes pulso { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+  main { padding: 24px 28px 48px; max-width: 1400px; margin: 0 auto; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+  .kpi {
+    background: var(--papel); border: 1px solid var(--linea); border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .kpi .rot { font-size: 12px; color: var(--suave); text-transform: none; }
+  .kpi .val { font-size: 27px; font-weight: 600; margin-top: 4px; letter-spacing: -0.02em; }
+  .kpi .pie { font-size: 12px; color: var(--tenue); margin-top: 2px; }
+  .kpi.aviso { background: var(--alerta-tenue); border-color: #eccfa8; }
+  .kpi.aviso .val, .kpi.aviso .rot { color: var(--alerta); }
+
+  .rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+  @media (max-width: 900px) { .rejilla { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--papel); border: 1px solid var(--linea); border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel > h2 {
+    font-size: 14px; font-weight: 600; margin: 0;
+    padding: 13px 18px; border-bottom: 1px solid var(--linea);
+  }
+  .panel > h2 span { font-weight: 400; color: var(--tenue); font-size: 12.5px; margin-left: 6px; }
+  .cuerpo { max-height: 330px; overflow-y: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left; font-weight: 500; font-size: 12px; color: var(--suave);
+    padding: 9px 18px; border-bottom: 1px solid var(--linea);
+    position: sticky; top: 0; background: var(--papel);
+  }
+  td { padding: 10px 18px; border-bottom: 1px solid #eef1f4; }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .pastilla {
+    display: inline-block; font-size: 11.5px; padding: 2px 8px; border-radius: 20px;
+    background: #eceff2; color: var(--suave);
+  }
+  .pastilla.ok { background: var(--acento-tenue); color: var(--acento); }
+  .pastilla.mal { background: var(--alerta-tenue); color: var(--alerta); }
+
+  .aviso-fila { background: var(--alerta-tenue); }
+
+  .noti { padding: 12px 18px; border-bottom: 1px solid #eef1f4; }
+  .noti:last-child { border-bottom: none; }
+  .noti .cab { display: flex; align-items: center; gap: 9px; }
+  .noti .asunto { font-size: 14px; font-weight: 500; }
+  .noti .cuerpo { font-size: 13px; color: var(--suave); margin-top: 2px; }
+  .noti .cuando { font-size: 11.5px; color: var(--tenue); margin-left: auto; white-space: nowrap; }
+
+  .vacio { padding: 26px 18px; color: var(--tenue); font-size: 13.5px; text-align: center; }
+
+  .consulta { margin-top: 18px; }
+  .consulta summary {
+    cursor: pointer; font-size: 13px; color: var(--suave); padding: 9px 0;
+    user-select: none;
+  }
+  .consulta pre {
+    background: #20242a; color: #d7dde5; padding: 15px 18px; border-radius: 8px;
+    font-size: 12.5px; line-height: 1.55; overflow-x: auto; margin: 4px 0 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .consulta .nota { font-size: 12.5px; color: var(--tenue); margin: 9px 0 0 0; }
+
+  .error {
+    background: #fdecec; border: 1px solid #f0c0c0; color: #8c2020;
+    padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Panel de operacion</h1>
+    <p class="sub">Plataforma multiestablecimiento de servicios por cita</p>
+  </div>
+  <div class="controles">
+    <div>
+      <label for="est">Establecimiento</label>
+      <select id="est"></select>
+    </div>
+    <div>
+      <label for="prof">Profesional</label>
+      <select id="prof"></select>
+    </div>
+    <span class="latido"><span class="punto"></span><span id="latido">conectando</span></span>
+  </div>
+</header>
+
+<main>
+  <div id="error" style="display:none" class="error"></div>
+
+  <section class="kpis">
+    <div class="kpi">
+      <div class="rot">Servicios prestados</div>
+      <div class="val" id="k-servicios">&mdash;</div>
+      <div class="pie">liquidados desde eventos</div>
+    </div>
+    <div class="kpi">
+      <div class="rot">Ingresos del periodo</div>
+      <div class="val" id="k-ingresos">&mdash;</div>
+      <div class="pie">ms-operaciones</div>
+    </div>
+    <div class="kpi" id="kpi-alertas">
+      <div class="rot">Insumos por reponer</div>
+      <div class="val" id="k-alertas">&mdash;</div>
+      <div class="pie">en umbral o por debajo</div>
+    </div>
+    <div class="kpi">
+      <div class="rot">Notificaciones</div>
+      <div class="val" id="k-notis">&mdash;</div>
+      <div class="pie">ms-relacion-cliente</div>
+    </div>
+  </section>
+
+  <div class="rejilla">
+    <div class="panel">
+      <h2>Inventario <span>ms-operaciones</span></h2>
+      <div class="cuerpo"><table>
+        <thead><tr><th>Insumo</th><th class="num">Existencia</th><th class="num">Umbral</th><th>Estado</th></tr></thead>
+        <tbody id="t-inventario"></tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h2>Notificaciones recientes <span>ms-relacion-cliente</span></h2>
+      <div class="cuerpo" id="t-notis"></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:18px">
+    <h2>Agenda <span>ms-agenda, con el nombre del servicio resuelto por ms-establecimientos</span></h2>
+    <div class="cuerpo"><table>
+      <thead><tr><th>Inicio</th><th>Servicio</th><th>Estado</th><th class="num">Valor</th></tr></thead>
+      <tbody id="t-agenda"></tbody>
+    </table></div>
+  </div>
+
+  <details class="consulta">
+    <summary>Ver la consulta GraphQL que alimenta esta pantalla</summary>
+    <pre id="consulta-texto"></pre>
+    <p class="nota">Una sola peticion al gateway. Por dentro resuelve llamadas REST a
+      ms-operaciones, ms-relacion-cliente, ms-agenda y ms-establecimientos, y devuelve
+      exactamente los campos pedidos.</p>
+  </details>
+</main>
+
+<script>
+const RUTA = "/graphql";
+const CADA_MS = 5000;
+
+const CONSULTA_PANEL = `query Panel($est: ID!, $prof: ID!, $desde: String!, $hasta: String!) {
+  resumenIngresos(establecimientoId: $est, desde: $desde, hasta: $hasta) {
+    serviciosPrestados
+    totalIngresos
+  }
+  inventario(establecimientoId: $est) {
+    nombre
+    unidad
+    existencia
+    umbralMinimo
+    enUmbral
+  }
+  notificaciones(establecimientoId: $est) {
+    tipo
+    asunto
+    cuerpo
+    creadaEn
+  }
+  agenda(profesionalId: $prof, desde: $desde, hasta: $hasta) {
+    inicio
+    servicio
+    estado
+    valorCobrado
+  }
+}`;
+
+document.getElementById("consulta-texto").textContent = CONSULTA_PANEL;
+
+const pesos = new Intl.NumberFormat("es-CO",
+  { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+
+function rangoDelAnio() {
+  const a = new Date().getFullYear();
+  return { desde: a + "-01-01T00:00:00-05:00", hasta: a + "-12-31T23:59:59-05:00" };
+}
+
+async function graphql(consulta, variables) {
+  const r = await fetch(RUTA, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: consulta, variables: variables || {} })
+  });
+  const j = await r.json();
+  if (j.errors && j.errors.length) {
+    throw new Error(j.errors.map(e => e.message).join(" · "));
+  }
+  return j.data;
+}
+
+function mostrarError(texto) {
+  const caja = document.getElementById("error");
+  if (!texto) { caja.style.display = "none"; return; }
+  caja.style.display = "block";
+  caja.textContent = texto;
+}
+
+function hora(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return iso;
+  return d.toLocaleString("es-CO",
+    { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function escapar(t) {
+  return String(t == null ? "" : t)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ---------- carga inicial ----------
+
+async function arrancar() {
+  try {
+    const d = await graphql("{ establecimientos { id nombre } }");
+    const sel = document.getElementById("est");
+    if (!d.establecimientos.length) {
+      mostrarError("No hay establecimientos registrados todavia. " +
+        "Levanta el sistema con el simulador activo o ejecuta demo.sh.");
+      return;
+    }
+    sel.innerHTML = d.establecimientos
+      .map(e => `<option value="${e.id}">${escapar(e.nombre)}</option>`).join("");
+    sel.onchange = cargarProfesionales;
+    await cargarProfesionales();
+    refrescar();
+    setInterval(refrescar, CADA_MS);
+  } catch (e) {
+    mostrarError("No se pudo conectar con el gateway: " + e.message);
+  }
+}
+
+async function cargarProfesionales() {
+  const est = document.getElementById("est").value;
+  const sel = document.getElementById("prof");
+  const d = await graphql(
+    "query($e: ID!) { profesionales(establecimientoId: $e) { id nombre } }", { e: est });
+  sel.innerHTML = d.profesionales.length
+    ? d.profesionales.map(p => `<option value="${p.id}">${escapar(p.nombre)}</option>`).join("")
+    : '<option value="">sin profesionales</option>';
+  sel.onchange = refrescar;
+}
+
+// ---------- refresco ----------
+
+async function refrescar() {
+  const est = document.getElementById("est").value;
+  const prof = document.getElementById("prof").value;
+  if (!est || !prof) return;
+  const { desde, hasta } = rangoDelAnio();
+
+  try {
+    const d = await graphql(CONSULTA_PANEL, { est, prof, desde, hasta });
+    mostrarError(null);
+    pintar(d);
+    document.getElementById("latido").textContent =
+      "actualizado " + new Date().toLocaleTimeString("es-CO");
+  } catch (e) {
+    mostrarError("Error al consultar: " + e.message);
+  }
+}
+
+function pintar(d) {
+  // --- indicadores ---
+  const r = d.resumenIngresos || {};
+  document.getElementById("k-servicios").textContent = r.serviciosPrestados ?? 0;
+  document.getElementById("k-ingresos").textContent = pesos.format(r.totalIngresos || 0);
+
+  const inv = d.inventario || [];
+  const enAlerta = inv.filter(i => i.enUmbral).length;
+  document.getElementById("k-alertas").textContent = enAlerta;
+  document.getElementById("kpi-alertas").className = "kpi" + (enAlerta ? " aviso" : "");
+
+  const notis = d.notificaciones || [];
+  document.getElementById("k-notis").textContent = notis.length;
+
+  // --- inventario ---
+  const ti = document.getElementById("t-inventario");
+  ti.innerHTML = inv.length ? inv.map(i => `
+    <tr class="${i.enUmbral ? "aviso-fila" : ""}">
+      <td>${escapar(i.nombre)}</td>
+      <td class="num">${i.existencia} ${escapar(i.unidad || "")}</td>
+      <td class="num">${i.umbralMinimo}</td>
+      <td><span class="pastilla ${i.enUmbral ? "mal" : "ok"}">
+        ${i.enUmbral ? "reponer" : "suficiente"}</span></td>
+    </tr>`).join("")
+    : '<tr><td colspan="4" class="vacio">Sin insumos registrados</td></tr>';
+
+  // --- notificaciones, las mas recientes primero ---
+  const tn = document.getElementById("t-notis");
+  tn.innerHTML = notis.length ? notis.slice(0, 25).map(n => `
+    <div class="noti">
+      <div class="cab">
+        <span class="pastilla">${escapar(n.tipo)}</span>
+        <span class="asunto">${escapar(n.asunto)}</span>
+        <span class="cuando">${hora(n.creadaEn)}</span>
+      </div>
+      <div class="cuerpo">${escapar(n.cuerpo)}</div>
+    </div>`).join("")
+    : '<div class="vacio">Sin notificaciones todavia</div>';
+
+  // --- agenda ---
+  const ag = (d.agenda || []).slice().reverse();
+  const ta = document.getElementById("t-agenda");
+  ta.innerHTML = ag.length ? ag.slice(0, 40).map(c => `
+    <tr>
+      <td>${hora(c.inicio)}</td>
+      <td>${escapar(c.servicio)}</td>
+      <td><span class="pastilla ${c.estado === "completada" ? "ok"
+        : c.estado === "cancelada" ? "mal" : ""}">${escapar(c.estado)}</span></td>
+      <td class="num">${c.valorCobrado ? pesos.format(c.valorCobrado) : "&mdash;"}</td>
+    </tr>`).join("")
+    : '<tr><td colspan="4" class="vacio">Sin citas en el periodo</td></tr>';
+}
+
+arrancar();
+</script>
+</body>
+</html>

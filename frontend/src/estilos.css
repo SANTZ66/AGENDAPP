@@ -1,0 +1,1108 @@
+/* ==========================================================================
+   Plataforma de citas · hoja de estilos
+   --------------------------------------------------------------------------
+   Una sola hoja, sin framework y sin CDN: la aplicacion abre igual sin
+   conexion a internet.
+
+   La idea visual sale del oficio. En un salon de uñas el color ES el
+   producto, asi que cada servicio lleva su gota de esmalte y la pantalla
+   principal es la carta de colores del dia. Todo lo demas se mantiene en
+   porcelana y tinta para que esos colores sean lo unico que grite.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Fraunces';
+  src: url('/fuentes/fraunces.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Jakarta';
+  src: url('/fuentes/jakarta.woff2') format('woff2-variations');
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  /* Porcelana y tinta: los neutros tienen un matiz rosado muy leve, el de
+     una lima de uñas, para que el blanco no se vea clinico. */
+  --porcelana: #f7f4f5;
+  --papel: #ffffff;
+  --tinta: #241b21;
+  --grafito: #6e626a;
+  --tenue: #9a8f96;
+  --linea: #e8e1e4;
+  --linea-tenue: #f1ecee;
+
+  /* Laca: el unico color de accion en toda la interfaz. */
+  --laca: #b3123f;
+  --laca-honda: #8e0e32;
+  --laca-suave: #fcecf1;
+  --laca-borde: #f2c9d6;
+
+  --oro: #8a6214;
+  --oro-suave: #fbf2e0;
+  --oro-borde: #ecd9ae;
+
+  --menta: #146a52;
+  --menta-suave: #e3f1eb;
+
+  --r-chico: 8px;
+  --r: 12px;
+  --r-grande: 18px;
+
+  --sombra: 0 1px 2px rgba(36, 27, 33, 0.05),
+            0 8px 24px -16px rgba(36, 27, 33, 0.16);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--porcelana);
+  color: var(--tinta);
+  font-family: 'Jakarta', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; }
+p { margin: 0; }
+ul, ol, dl { margin: 0; padding: 0; list-style: none; }
+
+:focus-visible {
+  outline: 2px solid var(--laca);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   Armazon
+   ========================================================================== */
+
+.app {
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  min-height: 100%;
+}
+
+.app--sola { grid-template-columns: 1fr; }
+
+.tablero {
+  padding: 34px 40px 64px;
+  max-width: 1180px;
+  width: 100%;
+}
+
+.tablero--centrado {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   Barra lateral
+   ========================================================================== */
+
+.lateral {
+  background: var(--papel);
+  border-right: 1px solid var(--linea);
+  padding: 24px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.lateral--fantasma { background: var(--papel); }
+
+.lateral__marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+/* La gota de esmalte que hace de logotipo. */
+.lateral__gota {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50% 50% 50% 2px;
+  background: linear-gradient(145deg, var(--laca), var(--laca-honda));
+  transform: rotate(-12deg);
+}
+
+.lateral__nombre {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lateral__lista { display: flex; flex-direction: column; gap: 2px; }
+
+.lateral__enlace {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: var(--r-chico);
+  color: var(--grafito);
+  text-decoration: none;
+  font-size: 14.5px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lateral__enlace:hover { background: var(--porcelana); color: var(--tinta); }
+
+.lateral__enlace.active {
+  background: var(--laca-suave);
+  color: var(--laca);
+  font-weight: 600;
+}
+
+.lateral__pie {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 8px 0;
+  border-top: 1px solid var(--linea-tenue);
+}
+
+.eleccion { display: block; }
+
+.eleccion > span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--tenue);
+  margin-bottom: 3px;
+}
+
+/* Indicador de reconexion. Es deliberadamente pequeño y sin rojo: avisa sin
+   alarmar, porque la app sigue siendo usable mientras tanto. */
+.reconectando {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--oro);
+  background: var(--oro-suave);
+  border: 1px solid var(--oro-borde);
+  padding: 6px 9px;
+  border-radius: var(--r-chico);
+}
+
+.reconectando__pulso {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: latir 1.6s ease-in-out infinite;
+}
+
+@keyframes latir {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+/* ==========================================================================
+   Formularios
+   ========================================================================== */
+
+select, input, button { font: inherit; }
+
+select, input[type='date'], input[type='number'], input[type='text'],
+input[type='email'], input[type='password'] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--linea);
+  border-radius: var(--r-chico);
+  background: var(--papel);
+  color: var(--tinta);
+  font-size: 14px;
+}
+
+select { cursor: pointer; }
+
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--laca);
+  box-shadow: 0 0 0 3px var(--laca-suave);
+}
+
+.campo { display: block; }
+.campo > span {
+  display: block;
+  font-size: 13px;
+  color: var(--grafito);
+  margin-bottom: 5px;
+}
+.campo--corto { max-width: 190px; }
+
+/* ==========================================================================
+   Botones
+   ========================================================================== */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: var(--r-chico);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.boton--principal { background: var(--laca); color: #fff; }
+.boton--principal:hover { background: var(--laca-honda); }
+
+.boton--suave {
+  background: var(--papel);
+  border-color: var(--linea);
+  color: var(--tinta);
+}
+.boton--suave:hover { background: var(--porcelana); border-color: var(--tenue); }
+
+.boton--peligro { background: var(--laca-honda); color: #fff; }
+.boton--peligro:hover { background: #76092a; }
+
+.boton--chico { padding: 6px 12px; font-size: 13px; }
+
+.boton:disabled { opacity: 0.55; cursor: default; }
+
+/* ==========================================================================
+   Encabezado de pantalla
+   ========================================================================== */
+
+.titular {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+.titular__fecha {
+  font-size: 13px;
+  color: var(--tenue);
+  margin-bottom: 2px;
+}
+
+/* La serif aparece solo aqui y en las cifras. Es el acento tipografico, y
+   si se repartiera por toda la interfaz dejaria de serlo. */
+.titular__texto {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(26px, 3.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+.intro {
+  color: var(--grafito);
+  max-width: 62ch;
+  margin: -14px 0 24px;
+  font-size: 14.5px;
+}
+
+/* ==========================================================================
+   Cifras
+   ========================================================================== */
+
+.cifras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.cifra {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--r);
+  padding: 15px 17px 16px;
+}
+
+.cifra__rotulo { font-size: 13px; color: var(--grafito); }
+
+.cifra__valor {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.cifra__pie { font-size: 12.5px; color: var(--tenue); margin-top: 1px; }
+
+.cifra--aviso {
+  background: var(--oro-suave);
+  border-color: var(--oro-borde);
+}
+.cifra--aviso .cifra__valor, .cifra--aviso .cifra__rotulo { color: var(--oro); }
+
+/* Un dato que no se pudo leer se apaga, no se pinta de rojo: no es un
+   error del usuario ni algo que deba mirar. */
+.cifra--apagado { background: var(--porcelana); border-style: dashed; }
+.cifra--apagado .cifra__valor { color: var(--tenue); }
+
+/* ==========================================================================
+   Paneles
+   ========================================================================== */
+
+.panel {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--r-grande);
+  box-shadow: var(--sombra);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.panel__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+
+.panel__titulo { font-size: 15.5px; font-weight: 600; }
+
+.panel__apunte {
+  font-size: 13px;
+  color: var(--grafito);
+  margin-top: 2px;
+  max-width: 62ch;
+}
+
+.panel__acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.panel__cuerpo { padding: 18px 20px 20px; }
+.panel__cuerpo--compacto { padding: 0; }
+
+/* Sello de dato viejo. Se queda en ambar y en letra pequeña: informa de que
+   lo que se ve es la ultima lectura buena, sin convertirlo en una alarma. */
+.sello-viejo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--oro);
+  background: var(--oro-suave);
+  border: 1px solid var(--oro-borde);
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.sello-viejo__punto {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: latir 2s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Ausencias: carga, sin datos, vacio
+   ========================================================================== */
+
+.esqueleto { padding: 20px; display: flex; flex-direction: column; gap: 11px; }
+
+.esqueleto__linea {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--linea-tenue) 25%, var(--linea) 50%, var(--linea-tenue) 75%);
+  background-size: 300% 100%;
+  animation: barrer 1.5s ease-in-out infinite;
+}
+
+@keyframes barrer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
+.sin-info {
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.sin-info__icono { color: var(--tenue); line-height: 0; margin-bottom: 4px; }
+.sin-info__titulo { font-weight: 600; font-size: 15px; }
+.sin-info__texto {
+  color: var(--grafito);
+  font-size: 13.5px;
+  max-width: 44ch;
+  margin-bottom: 12px;
+}
+
+/* Pantalla completa cuando no hay servidor. Lleva la gota de la marca para
+   que siga pareciendo la misma app, no una pagina de error del navegador. */
+.desconectado {
+  text-align: center;
+  max-width: 400px;
+  padding: 24px;
+}
+
+.desconectado__gota {
+  display: block;
+  width: 30px; height: 30px;
+  margin: 0 auto 20px;
+  border-radius: 50% 50% 50% 3px;
+  background: linear-gradient(145deg, var(--laca), var(--laca-honda));
+  transform: rotate(-12deg);
+  opacity: 0.35;
+  animation: latir 2.4s ease-in-out infinite;
+}
+
+.desconectado h1 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 23px;
+  letter-spacing: -0.02em;
+  margin-bottom: 7px;
+}
+
+.desconectado > p {
+  color: var(--grafito);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.desconectado__pista {
+  font-size: 12.5px;
+  color: var(--tenue);
+  margin-top: 20px;
+  margin-bottom: 0;
+}
+
+.vacio { padding: 38px 24px; text-align: center; }
+.vacio__titulo { font-weight: 600; font-size: 14.5px; }
+.vacio__texto {
+  color: var(--grafito);
+  font-size: 13.5px;
+  margin-top: 2px;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* ==========================================================================
+   Estados
+   ========================================================================== */
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--grafito);
+  white-space: nowrap;
+}
+
+.estado__punto {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.estado--espera { color: var(--grafito); }
+.estado--hecho { color: var(--menta); }
+.estado--anulado { color: var(--oro); }
+
+/* La gota de esmalte del servicio. */
+.esmalte {
+  display: inline-block;
+  border-radius: 50% 50% 50% 1px;
+  transform: rotate(-12deg);
+  flex: none;
+}
+
+/* ==========================================================================
+   Inicio: la jornada
+   ========================================================================== */
+
+.rejilla-hoy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(260px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.columna { display: flex; flex-direction: column; }
+
+.jornada { padding: 6px 0; }
+
+.jornada__fila {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 12px;
+  padding: 3px 20px;
+  position: relative;
+}
+
+.jornada__hora {
+  font-size: 12.5px;
+  color: var(--tenue);
+  padding-top: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La hora en curso lleva una linea de laca al borde: es el unico elemento
+   de la pantalla que indica el momento presente. */
+.jornada__fila--ahora::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--laca);
+}
+
+.jornada__fila--ahora .jornada__hora { color: var(--laca); font-weight: 600; }
+
+.jornada__ranura { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+
+.jornada__libre {
+  display: block;
+  padding: 9px 12px;
+  border: 1px dashed var(--linea);
+  border-radius: var(--r-chico);
+  color: var(--tenue);
+  font-size: 13px;
+  text-decoration: none;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.jornada__libre:hover {
+  border-color: var(--laca-borde);
+  background: var(--laca-suave);
+  color: var(--laca);
+}
+
+.cita {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 0;
+  background: var(--porcelana);
+  border-radius: var(--r-chico);
+  overflow: hidden;
+}
+
+/* El canto de color: la gota de esmalte estirada. Identifica el servicio
+   sin gastar una palabra. */
+.cita__linea {
+  width: 4px;
+  align-self: stretch;
+  background: var(--color, var(--laca));
+  flex: none;
+}
+
+.cita__texto { flex: 1; min-width: 0; }
+.cita__servicio { font-size: 14px; font-weight: 500; }
+.cita__detalle { font-size: 12.5px; color: var(--grafito); }
+
+.lista-reponer { padding: 6px 0; }
+
+.lista-reponer li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+.lista-reponer li:last-child { border-bottom: none; }
+
+.lista-reponer__aviso { color: var(--oro); line-height: 0; flex: none; }
+.lista-reponer__nombre { font-size: 14px; flex: 1; min-width: 0; }
+.lista-reponer__cifra { font-size: 12.5px; color: var(--oro); white-space: nowrap; }
+
+.siguiente {
+  display: block;
+  padding: 18px 20px;
+  text-decoration: none;
+  color: inherit;
+  border-left: 4px solid var(--color, var(--laca));
+}
+
+.siguiente__hora {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.siguiente__servicio {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14.5px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+.siguiente__cliente { font-size: 13px; color: var(--grafito); }
+
+.siguiente__ir {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--laca);
+  margin-top: 12px;
+}
+
+/* ==========================================================================
+   Agenda
+   ========================================================================== */
+
+.filtros { display: flex; gap: 7px; margin-bottom: 16px; flex-wrap: wrap; }
+
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px;
+  border: 1px solid var(--linea);
+  background: var(--papel);
+  border-radius: 20px;
+  font-size: 13.5px;
+  color: var(--grafito);
+  cursor: pointer;
+}
+
+.filtro:hover { border-color: var(--tenue); }
+
+.filtro--activo {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--papel);
+}
+
+.filtro__cuenta {
+  font-size: 11.5px;
+  background: rgba(0, 0, 0, 0.07);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.filtro--activo .filtro__cuenta { background: rgba(255, 255, 255, 0.2); }
+
+.citas__fila {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+
+.citas__fila:last-child { border-bottom: none; }
+.citas__fila:hover { background: #fcfbfb; }
+
+.citas__cuando { line-height: 1.25; }
+.citas__dia { display: block; font-size: 12px; color: var(--tenue); }
+.citas__hora {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.citas__servicio { display: flex; align-items: center; gap: 8px; font-size: 14.5px; }
+
+.citas__duracion { font-size: 12.5px; color: var(--tenue); }
+.citas__cliente { font-size: 12.5px; color: var(--grafito); margin-left: 18px; }
+
+.citas__valor {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--grafito);
+}
+
+.citas__acciones { display: flex; gap: 7px; justify-content: flex-end; }
+
+/* ==========================================================================
+   Reservar
+   ========================================================================== */
+
+.servicios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 10px;
+}
+
+.servicio {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 2px 10px;
+  align-items: center;
+  text-align: left;
+  padding: 13px 15px;
+  border: 1px solid var(--linea);
+  border-radius: var(--r);
+  background: var(--papel);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.servicio:hover { border-color: var(--laca-borde); }
+
+.servicio--elegido {
+  border-color: var(--laca);
+  background: var(--laca-suave);
+  box-shadow: 0 0 0 1px var(--laca);
+}
+
+.servicio .esmalte { grid-row: span 2; }
+.servicio__nombre { font-size: 14.5px; font-weight: 500; }
+.servicio__meta { font-size: 12.5px; color: var(--grafito); }
+
+.fila-fecha { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.atajos { display: flex; gap: 7px; flex-wrap: wrap; }
+
+.cupos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 9px;
+}
+
+.cupo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 13px 8px;
+  border: 1px solid var(--linea);
+  border-radius: var(--r);
+  background: var(--papel);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+
+.cupo:hover {
+  border-color: var(--laca);
+  background: var(--laca-suave);
+  transform: translateY(-1px);
+}
+
+.cupo__hora {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.cupo__fin { font-size: 11.5px; color: var(--tenue); }
+
+/* ==========================================================================
+   Operacion
+   ========================================================================== */
+
+.tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+.tabla th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12.5px;
+  color: var(--grafito);
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--linea);
+  white-space: nowrap;
+}
+
+.tabla td { padding: 12px 20px; border-bottom: 1px solid var(--linea-tenue); }
+.tabla tbody tr:last-child td { border-bottom: none; }
+
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tenue { color: var(--tenue); }
+
+.fila--aviso { background: var(--oro-suave); }
+
+/* ==========================================================================
+   Clientas
+   ========================================================================== */
+
+.clientas__fila {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+.clientas__fila:last-child { border-bottom: none; }
+
+.clientas__inicial {
+  width: 36px; height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--laca-suave);
+  color: var(--laca);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.clientas__quien { flex: 1; min-width: 0; }
+.clientas__nombre { font-size: 14.5px; font-weight: 500; }
+.clientas__detalle { font-size: 12.5px; color: var(--grafito); }
+
+.clientas__cuando { text-align: right; }
+.clientas__ultima { font-size: 13px; }
+.clientas__esperada { font-size: 12.5px; color: var(--oro); }
+
+.avisos-lista__fila {
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--linea-tenue);
+}
+.avisos-lista__fila:last-child { border-bottom: none; }
+
+.avisos-lista__cab { display: flex; align-items: center; gap: 10px; }
+.avisos-lista__cuando { font-size: 12px; color: var(--tenue); margin-left: auto; }
+.avisos-lista__asunto { font-size: 14px; font-weight: 500; margin-top: 4px; }
+.avisos-lista__cuerpo { font-size: 13px; color: var(--grafito); }
+
+/* ==========================================================================
+   Modal
+   ========================================================================== */
+
+.velo {
+  position: fixed;
+  inset: 0;
+  background: rgba(36, 27, 33, 0.38);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+  animation: aparecer 0.15s ease-out;
+}
+
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: var(--papel);
+  border-radius: var(--r-grande);
+  width: min(430px, 100%);
+  box-shadow: 0 24px 60px -20px rgba(36, 27, 33, 0.4);
+  animation: subir 0.18s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes subir {
+  from { transform: translateY(10px) scale(0.985); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.modal__cabecera { padding: 22px 24px 0; }
+
+.modal__cabecera h2 {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.modal__cabecera p { font-size: 13.5px; color: var(--grafito); margin-top: 3px; }
+
+.modal__cuerpo { padding: 18px 24px 4px; }
+
+.modal__pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 18px 24px 22px;
+}
+
+.nota {
+  font-size: 13px;
+  color: var(--grafito);
+  margin-top: 12px;
+  max-width: 48ch;
+}
+
+.resumen { display: flex; flex-direction: column; gap: 9px; }
+.resumen > div { display: flex; justify-content: space-between; gap: 16px; }
+.resumen dt { font-size: 13.5px; color: var(--grafito); }
+.resumen dd { margin: 0; font-size: 13.5px; font-weight: 500; text-align: right; }
+
+/* ==========================================================================
+   Avisos flotantes
+   ========================================================================== */
+
+.avisos {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  z-index: 60;
+  max-width: calc(100vw - 40px);
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px 12px 15px;
+  border-radius: var(--r);
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  box-shadow: 0 12px 32px -12px rgba(36, 27, 33, 0.3);
+  width: min(370px, 100%);
+  animation: entrar 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes entrar {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.aviso p { font-size: 13.5px; flex: 1; }
+.aviso__icono { line-height: 0; margin-top: 2px; flex: none; }
+.aviso--ok { border-left: 3px solid var(--menta); }
+.aviso--ok .aviso__icono { color: var(--menta); }
+.aviso--mal { border-left: 3px solid var(--oro); }
+.aviso--mal .aviso__icono { color: var(--oro); }
+
+.aviso__cerrar {
+  background: none;
+  border: none;
+  color: var(--tenue);
+  cursor: pointer;
+  padding: 2px;
+  line-height: 0;
+  flex: none;
+}
+.aviso__cerrar:hover { color: var(--tinta); }
+
+/* ==========================================================================
+   Pantallas estrechas
+   --------------------------------------------------------------------------
+   La barra lateral pasa al pie convertida en pestañas, que es donde el
+   pulgar llega sin estirar la mano. Los selectores de salon y equipo suben
+   a una franja arriba, porque se tocan poco.
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+
+  .lateral {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    top: auto;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    border-right: none;
+    border-top: 1px solid var(--linea);
+    z-index: 40;
+  }
+
+  .lateral__marca { display: none; }
+
+  .lateral__lista {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-around;
+  }
+
+  .lateral__enlace {
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11px;
+    padding: 9px 6px 8px;
+    border-radius: 0;
+  }
+
+  .lateral__enlace.active { background: none; }
+
+  .lateral__pie {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin: 0;
+    background: var(--papel);
+    border-top: none;
+    border-bottom: 1px solid var(--linea);
+  }
+
+  .lateral__pie .eleccion { flex: 1; }
+  .lateral__pie .eleccion > span { display: none; }
+  .reconectando { font-size: 11.5px; padding: 5px 8px; }
+
+  .tablero { padding: 76px 16px 96px; }
+
+  .titular { flex-direction: column; align-items: stretch; gap: 14px; }
+  .titular .boton { width: 100%; }
+
+  .rejilla-hoy { grid-template-columns: 1fr; }
+
+  .jornada__fila { grid-template-columns: 50px minmax(0, 1fr); padding-inline: 14px; }
+
+  .citas__fila {
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-areas:
+      'cuando que'
+      'estado valor'
+      'acciones acciones';
+    gap: 8px 12px;
+  }
+  .citas__cuando { grid-area: cuando; }
+  .citas__que { grid-area: que; }
+  .citas__estado { grid-area: estado; }
+  .citas__valor { grid-area: valor; text-align: right; }
+  .citas__acciones { grid-area: acciones; justify-content: flex-start; }
+  .citas__cliente { margin-left: 0; }
+
+  .avisos { bottom: 78px; right: 14px; left: 14px; }
+  .panel__cuerpo { padding: 15px 16px 17px; }
+  .panel__cabecera { padding: 14px 16px 12px; flex-wrap: wrap; }
+  .tabla th, .tabla td { padding-inline: 16px; }
+  .clientas__fila, .avisos-lista__fila, .lista-reponer li { padding-inline: 16px; }
+}

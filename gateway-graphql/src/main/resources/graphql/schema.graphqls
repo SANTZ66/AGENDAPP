@@ -1,0 +1,151 @@
+# Esquema unificado del sistema.
+#
+# El cliente pide exactamente los campos que necesita y los recibe en una
+# sola respuesta, aunque por dentro vengan de servicios distintos.
+#
+# Las fechas viajan como String en formato ISO-8601 (2026-10-15T09:00:00-05:00).
+# GraphQL no trae un tipo de fecha propio y no se agrego una libreria extra
+# para eso: no habia requisito que lo justificara.
+
+type Establecimiento {
+  id: ID!
+  nombre: String!
+  telefono: String
+  ventanaConfirmacionHoras: Int
+}
+
+type Profesional {
+  id: ID!
+  establecimientoId: ID!
+  nombre: String!
+  activo: Boolean
+}
+
+type Servicio {
+  id: ID!
+  establecimientoId: ID!
+  nombre: String!
+  duracionMinutos: Int
+  precio: Float
+  periodicidadDias: Int
+}
+
+type Cita {
+  id: ID!
+  establecimientoId: ID
+  profesionalId: ID
+  servicioId: ID
+  clienteId: ID
+  inicio: String
+  fin: String
+  estado: String
+  valorCobrado: Float
+  "Cuando la clienta confirmo su asistencia (ISO-8601); null si no lo ha hecho."
+  confirmadaEn: String
+}
+
+"Cita de ms-agenda enriquecida con el catalogo de ms-establecimientos."
+type CitaDetallada {
+  id: ID!
+  inicio: String
+  fin: String
+  estado: String
+  clienteId: ID
+  servicio: String
+  duracionMinutos: Int
+  valorCobrado: Float
+  confirmadaEn: String
+}
+
+type Insumo {
+  id: ID!
+  establecimientoId: ID
+  nombre: String!
+  unidad: String
+  existencia: Float
+  umbralMinimo: Float
+  enUmbral: Boolean
+}
+
+type Resumen {
+  establecimientoId: ID
+  desde: String
+  hasta: String
+  serviciosPrestados: Int
+  totalIngresos: Float
+}
+
+"Una franja libre devuelta por ms-agenda."
+type Franja {
+  inicio: String
+  fin: String
+}
+
+"Historial de un cliente en un establecimiento."
+type Recurrencia {
+  clienteId: ID
+  ultimaVisita: String
+  proximoContacto: String
+  totalVisitas: Int
+  totalCancelaciones: Int
+}
+
+type Notificacion {
+  id: ID!
+  citaId: ID
+  tipo: String
+  canal: String
+  asunto: String
+  cuerpo: String
+  estado: String
+  creadaEn: String
+}
+
+"Sesion abierta en el panel del establecimiento. expiraEn en ISO-8601."
+type SesionNegocio {
+  token: String!
+  expiraEn: String!
+  nombre: String!
+  establecimientoId: ID!
+  rol: String
+}
+
+type Query {
+  establecimientos: [Establecimiento!]!
+  profesionales(establecimientoId: ID!): [Profesional!]!
+  servicios(establecimientoId: ID!): [Servicio!]!
+
+  "Agenda del profesional con el nombre del servicio ya resuelto."
+  agenda(profesionalId: ID!, desde: String!, hasta: String!): [CitaDetallada!]!
+
+  inventario(establecimientoId: ID!): [Insumo!]!
+  resumenIngresos(establecimientoId: ID!, desde: String!, hasta: String!): Resumen
+  notificaciones(establecimientoId: ID!): [Notificacion!]!
+
+  "Cupos libres de un profesional en una fecha concreta."
+  disponibilidad(profesionalId: ID!, servicioId: ID!, fecha: String!): [Franja!]!
+
+  "Clientes que no han vuelto segun la periodicidad esperada."
+  clientesInactivos(establecimientoId: ID!): [Recurrencia!]!
+}
+
+type Mutation {
+  reservarCita(
+    establecimientoId: ID!
+    profesionalId: ID!
+    servicioId: ID!
+    clienteId: ID!
+    inicio: String!
+    fin: String!
+  ): Cita
+
+  cerrarCita(citaId: ID!, valorCobrado: Float!): Cita
+
+  cancelarCita(citaId: ID!, canceladaPor: String!, motivo: String): Cita
+
+  "La clienta confirma que asistira. No exige sesion (como reservarCita) y es idempotente."
+  confirmarCita(citaId: ID!): Cita
+
+  "Abre sesion en el panel del establecimiento y devuelve el token."
+  login(correo: String!, clave: String!): SesionNegocio
+}

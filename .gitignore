@@ -1,0 +1,36 @@
+# Compilados y dependencias (se regeneran dentro de los contenedores)
+target/
+*.class
+*.jar
+node_modules/
+dist/
+
+# Configuracion local: se versiona .env.example, nunca .env
+.env
+.env.*
+!.env.example
+.env.local
+
+# Ajustes temporales de ejecucion
+docker-compose.override.yml
+
+# Herramientas y editores
+.claude/
+.idea/
+.vscode/
+*.iml
+
+# Registros, temporales y respaldos
+*.log
+*.out
+*.tmp
+*.bak
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Entregables generados (el ZIP se produce con git archive)
+*.zip

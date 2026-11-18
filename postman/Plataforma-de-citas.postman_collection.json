@@ -1,0 +1,2541 @@
+{
+  "info": {
+    "name": "Plataforma de citas · PA G3 Equipo 5",
+    "description": "# Plataforma de citas · Colección de pruebas\n\nProgramación Avanzada · FET · Grupo 3 · Equipo 5\n\nAntes de usarla, levanta el sistema:\n\n    docker compose up --build\n\nEspera a que los logs dejen de moverse rápido (más o menos un minuto).\n\n## Cómo usarla\n\nAbre la carpeta **00 Flujo completo** y ejecuta las peticiones **en orden, de\nla 01 a la 15**. Cada una guarda sola los identificadores que la siguiente\nnecesita, así que no tienes que copiar y pegar ningún UUID.\n\nTambién puedes correr toda la carpeta de una vez con el *Collection Runner*\nde Postman.\n\n## Lo que demuestra el flujo\n\n- La **07** reserva y devuelve 201.\n- La **08** intenta la misma hora y **debe** devolver 409. Eso prueba que no\n  hay sobrecupo, y que la concurrencia la resuelve la base de datos, no Kafka.\n- La **10** cierra la cita. Ahí se publica el evento.\n- La **11**, **12** y **14** muestran el efecto: el inventario bajó, los\n  ingresos se registraron y se creó una notificación, sin que nadie llamara a\n  esos servicios. Lo hicieron escuchando el evento.\n\nEjecuta la 10 mirando los logs de `docker compose` y verás la cadena completa.\n\n## Variables\n\nLas de puerto ya vienen puestas. Las de identificadores se llenan solas.\nLas fechas se recalculan en cada ejecución, así que la colección no se vence.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Calcula fechas frescas en cada ejecucion, en hora de Colombia (-05:00).",
+          "// Asi la coleccion nunca queda con fechas vencidas.",
+          "",
+          "function iso(d, hora) {",
+          "    const p = n => String(n).padStart(2, \"0\");",
+          "    return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate())",
+          "           + \"T\" + p(hora) + \":00:00-05:00\";",
+          "}",
+          "",
+          "const hoy = new Date();",
+          "const manana = new Date(hoy.getTime() + 24 * 60 * 60 * 1000);",
+          "const p = n => String(n).padStart(2, \"0\");",
+          "",
+          "pm.collectionVariables.set(\"fecha\",",
+          "    manana.getUTCFullYear() + \"-\" + p(manana.getUTCMonth() + 1) + \"-\" + p(manana.getUTCDate()));",
+          "",
+          "// Franja del flujo REST: manana 09:00 a 10:00",
+          "pm.collectionVariables.set(\"inicio\", iso(manana, 9));",
+          "pm.collectionVariables.set(\"fin\", iso(manana, 10));",
+          "",
+          "// Franja distinta para el gateway, para que no choque con la de arriba",
+          "pm.collectionVariables.set(\"inicioGql\", iso(manana, 15));",
+          "pm.collectionVariables.set(\"finGql\", iso(manana, 16));",
+          "",
+          "// Rango amplio para las consultas de agenda e ingresos",
+          "const atras = new Date(hoy.getTime() - 30 * 24 * 60 * 60 * 1000);",
+          "const adelante = new Date(hoy.getTime() + 30 * 24 * 60 * 60 * 1000);",
+          "pm.collectionVariables.set(\"desde\", iso(atras, 0));",
+          "pm.collectionVariables.set(\"hasta\", iso(adelante, 23));",
+          "",
+          "// Dos clientas fijas por ejecucion, para poder ver su historial despues",
+          "if (!pm.collectionVariables.get(\"clienteId\")) {",
+          "    pm.collectionVariables.set(\"clienteId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+          "}",
+          "if (!pm.collectionVariables.get(\"otraClienteId\")) {",
+          "    pm.collectionVariables.set(\"otraClienteId\", pm.variables.replaceIn(\"{{$guid}}\"));",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseEstablecimientos",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "baseAgenda",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "baseOperaciones",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "baseRelacion",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "baseSimulador",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "baseGateway",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "establecimientoId",
+      "value": ""
+    },
+    {
+      "key": "profesionalId",
+      "value": ""
+    },
+    {
+      "key": "servicioId",
+      "value": ""
+    },
+    {
+      "key": "insumoId",
+      "value": ""
+    },
+    {
+      "key": "citaId",
+      "value": ""
+    },
+    {
+      "key": "citaGqlId",
+      "value": ""
+    },
+    {
+      "key": "clienteId",
+      "value": ""
+    },
+    {
+      "key": "otraClienteId",
+      "value": ""
+    },
+    {
+      "key": "fecha",
+      "value": ""
+    },
+    {
+      "key": "inicio",
+      "value": ""
+    },
+    {
+      "key": "fin",
+      "value": ""
+    },
+    {
+      "key": "inicioGql",
+      "value": ""
+    },
+    {
+      "key": "finGql",
+      "value": ""
+    },
+    {
+      "key": "desde",
+      "value": ""
+    },
+    {
+      "key": "hasta",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Flujo completo (ejecutar en orden)",
+      "item": [
+        {
+          "name": "01 Crear establecimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Salon de unas de prueba\",\n  \"telefono\": \"3001234567\",\n  \"ventanaConfirmacionHoras\": 24\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Crea el negocio. Guarda el id en la variable establecimientoId para que el resto de peticiones lo usen solas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"establecimientoId\", pm.response.json().id);",
+                  "console.log(\"establecimientoId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 Crear profesional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos/{{establecimientoId}}/profesionales",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos",
+                "{{establecimientoId}}",
+                "profesionales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Laura Rojas\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "La persona que atiende. Es quien tiene agenda."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"profesionalId\", pm.response.json().id);",
+                  "console.log(\"profesionalId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"nombre\": \"Manicura semipermanente\",\n  \"duracionMinutos\": 60,\n  \"precio\": 45000,\n  \"periodicidadDias\": 28\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El servicio del catalogo. periodicidadDias es cada cuanto se espera que la clienta vuelva: de ahi sale la lista de clientas inactivas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"servicioId\", pm.response.json().id);",
+                  "console.log(\"servicioId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 Crear insumo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"nombre\": \"Esmalte semipermanente\",\n  \"unidad\": \"frasco\",\n  \"existencia\": 10,\n  \"umbralMinimo\": 8\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El material que se gasta. El umbral es el minimo antes de avisar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"insumoId\", pm.response.json().id);",
+                  "console.log(\"insumoId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 Ligar insumo al servicio (la receta)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios/{{servicioId}}/insumos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios",
+                "{{servicioId}}",
+                "insumos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": \"{{insumoId}}\",\n  \"cantidadEstimada\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "La receta: una manicura gasta un frasco. ms-operaciones la consulta cuando recibe el evento de cita completada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "// Esto le dice al sistema cuanto material gasta un servicio. Sin esta",
+                  "// receta, cerrar una cita no descontaria nada del inventario."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 Ver cupos libres",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseAgenda}}/disponibilidad?profesionalId={{profesionalId}}&fecha={{fecha}}",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "profesionalId",
+                  "value": "{{profesionalId}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                }
+              ]
+            },
+            "description": "Jornada fija de 09:00 a 18:00 en franjas de una hora, menos las horas ya reservadas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 Reservar una cita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"profesionalId\": \"{{profesionalId}}\",\n  \"servicioId\": \"{{servicioId}}\",\n  \"clienteId\": \"{{clienteId}}\",\n  \"inicio\": \"{{inicio}}\",\n  \"fin\": \"{{fin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Devuelve 201. Esta peticion NO pasa por Kafka: es una decision y necesita respuesta inmediata."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const c = pm.response.json();",
+                  "pm.collectionVariables.set(\"citaId\", c.id);",
+                  "pm.test(\"queda agendada\", () => pm.expect(c.estado).to.eql(\"agendada\"));",
+                  "console.log(\"citaId =\", c.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 Reservar la MISMA hora (debe dar 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"profesionalId\": \"{{profesionalId}}\",\n  \"servicioId\": \"{{servicioId}}\",\n  \"clienteId\": \"{{otraClienteId}}\",\n  \"inicio\": \"{{inicio}}\",\n  \"fin\": \"{{fin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Otra clienta intenta el mismo cupo. La restriccion UNIQUE de PostgreSQL lo rechaza. Esta peticion DEBE fallar: es la prueba de que no hay sobrecupo."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict: el cupo ya estaba tomado\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"el cuerpo explica el conflicto\", function () {",
+                  "    pm.expect(pm.response.text()).to.not.be.empty;",
+                  "});",
+                  "// Este es el corazon del proyecto: la concurrencia la resuelve la base de",
+                  "// datos con UNIQUE (profesional_id, inicio), no Kafka. Kafka nunca ve esta",
+                  "// peticion rechazada, porque el evento solo se publica si la transaccion",
+                  "// alcanza a confirmarse."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 Ver la agenda del profesional",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseAgenda}}/citas?profesionalId={{profesionalId}}&desde={{desde}}&hasta={{hasta}}&page=0&size=20",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ],
+              "query": [
+                {
+                  "key": "profesionalId",
+                  "value": "{{profesionalId}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Con filtros y paginacion."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"viene paginada\", function () {",
+                  "    pm.expect(pm.response.json()).to.have.property(\"totalElements\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "10 Cerrar la cita (dispara el evento)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas/{{citaId}}/cierre",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas",
+                "{{citaId}}",
+                "cierre"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valorCobrado\": 45000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Aqui empieza la cadena de eventos. Mira los logs de docker compose mientras la ejecutas."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"queda completada\", function () {",
+                  "    pm.expect(pm.response.json().estado).to.eql(\"completada\");",
+                  "});",
+                  "// Al confirmarse esta transaccion, ms-agenda publica cita.completada en",
+                  "// Kafka. Nadie llama a ms-operaciones ni a ms-relacion-cliente: ellos",
+                  "// escuchan el topico. Comprueba el efecto con las dos peticiones",
+                  "// siguientes."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "11 Inventario: se descontó solo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            },
+            "description": "Nadie llamo a ms-operaciones. Bajo porque escucho cita.completada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const lista = pm.response.json();",
+                  "console.log(\"Existencias:\", JSON.stringify(lista, null, 2));",
+                  "pm.test(\"el insumo del servicio se desconto solo\", function () {",
+                  "    const i = lista.find(x => x.id === pm.collectionVariables.get(\"insumoId\"));",
+                  "    pm.expect(i, \"el insumo deberia existir\").to.not.be.undefined;",
+                  "    pm.expect(Number(i.existencia)).to.be.below(10);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "12 Ingresos: se registraron solos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/resumen?establecimientoId={{establecimientoId}}&desde={{desde}}&hasta={{hasta}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "resumen"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta}}"
+                }
+              ]
+            },
+            "description": "El historico de ingresos que el negocio real no tenia (problema P4)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "console.log(\"Servicios:\", r.serviciosPrestados, \"Ingresos:\", r.totalIngresos);",
+                  "pm.test(\"el historico de ingresos se armo solo\", function () {",
+                  "    pm.expect(r.serviciosPrestados).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "13 Alertas de insumo bajo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario/alertas?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            },
+            "description": "Los insumos que llegaron al umbral."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "14 Notificaciones generadas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseRelacion}}/notificaciones?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseRelacion}}"
+              ],
+              "path": [
+                "notificaciones"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            },
+            "description": "ms-relacion-cliente tambien escucho el evento y registro el aviso."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json();",
+                  "console.log(\"Notificaciones:\", n.length);",
+                  "pm.test(\"ms-relacion-cliente reacciono al evento\", function () {",
+                  "    pm.expect(n.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "15 Historial de la clienta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseRelacion}}/clientes/{{clienteId}}/recurrencia?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseRelacion}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteId}}",
+                "recurrencia"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            },
+            "description": "Cuantas veces vino y cuando se espera que vuelva."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "De la 01 a la 15. Cada peticion deja listos los ids de la siguiente. Es la demostracion para la sustentacion."
+    },
+    {
+      "name": "01 ms-establecimientos · puerto 8081",
+      "item": [
+        {
+          "name": "Crear establecimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otro salon\",\n  \"telefono\": \"3009999999\",\n  \"ventanaConfirmacionHoras\": 12\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"establecimientoId\", pm.response.json().id);",
+                  "console.log(\"establecimientoId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar establecimientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver un establecimiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos/{{establecimientoId}}",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos",
+                "{{establecimientoId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear profesional",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos/{{establecimientoId}}/profesionales",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos",
+                "{{establecimientoId}}",
+                "profesionales"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Daniela Pena\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"profesionalId\", pm.response.json().id);",
+                  "console.log(\"profesionalId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar profesionales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/establecimientos/{{establecimientoId}}/profesionales",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "establecimientos",
+                "{{establecimientoId}}",
+                "profesionales"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"nombre\": \"Acrilicas completas\",\n  \"duracionMinutos\": 120,\n  \"precio\": 90000,\n  \"periodicidadDias\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"servicioId\", pm.response.json().id);",
+                  "console.log(\"servicioId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar servicios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver un servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios/{{servicioId}}",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios",
+                "{{servicioId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ligar insumo a servicio",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios/{{servicioId}}/insumos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios",
+                "{{servicioId}}",
+                "insumos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"insumoId\": \"{{insumoId}}\",\n  \"cantidadEstimada\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ver la receta del servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios/{{servicioId}}/insumos",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios",
+                "{{servicioId}}",
+                "insumos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validacion: servicio sin nombre (debe dar 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseEstablecimientos}}/servicios",
+              "host": [
+                "{{baseEstablecimientos}}"
+              ],
+              "path": [
+                "servicios"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"duracionMinutos\": 60,\n  \"precio\": 10000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Prueba del manejo de errores de la rubrica."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));",
+                  "// Las anotaciones @NotBlank rechazan la peticion antes de que el",
+                  "// controlador se ejecute."
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Catalogo: establecimientos, profesionales, servicios y recetas."
+    },
+    {
+      "name": "02 ms-agenda · puerto 8080",
+      "item": [
+        {
+          "name": "Cupos libres",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseAgenda}}/disponibilidad?profesionalId={{profesionalId}}&fecha={{fecha}}",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "profesionalId",
+                  "value": "{{profesionalId}}"
+                },
+                {
+                  "key": "fecha",
+                  "value": "{{fecha}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reservar cita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"profesionalId\": \"{{profesionalId}}\",\n  \"servicioId\": \"{{servicioId}}\",\n  \"clienteId\": \"{{clienteId}}\",\n  \"inicio\": \"{{inicio}}\",\n  \"fin\": \"{{fin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const c = pm.response.json();",
+                  "pm.collectionVariables.set(\"citaId\", c.id);",
+                  "pm.test(\"queda agendada\", () => pm.expect(c.estado).to.eql(\"agendada\"));",
+                  "console.log(\"citaId =\", c.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agenda con filtros y paginacion",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseAgenda}}/citas?profesionalId={{profesionalId}}&desde={{desde}}&hasta={{hasta}}&page=0&size=20",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ],
+              "query": [
+                {
+                  "key": "profesionalId",
+                  "value": "{{profesionalId}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cerrar cita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas/{{citaId}}/cierre",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas",
+                "{{citaId}}",
+                "cierre"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"valorCobrado\": 45000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"queda completada\", function () {",
+                  "    pm.expect(pm.response.json().estado).to.eql(\"completada\");",
+                  "});",
+                  "// Al confirmarse esta transaccion, ms-agenda publica cita.completada en",
+                  "// Kafka. Nadie llama a ms-operaciones ni a ms-relacion-cliente: ellos",
+                  "// escuchan el topico. Comprueba el efecto con las dos peticiones",
+                  "// siguientes."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancelar cita",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas/{{citaId}}/cancelacion",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas",
+                "{{citaId}}",
+                "cancelacion"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"canceladaPor\": \"cliente\",\n  \"motivo\": \"No pudo asistir\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "canceladaPor solo acepta 'cliente' o 'profesional'."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"queda cancelada\", function () {",
+                  "    pm.expect(pm.response.json().estado).to.eql(\"cancelada\");",
+                  "});",
+                  "// Limitacion conocida y documentada: cancelar NO libera el cupo todavia.",
+                  "// La restriccion UNIQUE no filtra por estado, asi que volver a reservar",
+                  "// esa misma hora sigue dando 409."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validacion: reservar sin servicioId (debe dar 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseAgenda}}/citas",
+              "host": [
+                "{{baseAgenda}}"
+              ],
+              "path": [
+                "citas"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"profesionalId\": \"{{profesionalId}}\",\n  \"clienteId\": \"{{clienteId}}\",\n  \"inicio\": \"{{inicio}}\",\n  \"fin\": \"{{fin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Citas y disponibilidad. Es el unico que publica eventos."
+    },
+    {
+      "name": "03 ms-operaciones · puerto 8082",
+      "item": [
+        {
+          "name": "Crear insumo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"establecimientoId\": \"{{establecimientoId}}\",\n  \"nombre\": \"Removedor\",\n  \"unidad\": \"litro\",\n  \"existencia\": 5,\n  \"umbralMinimo\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"insumoId\", pm.response.json().id);",
+                  "console.log(\"insumoId =\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ver existencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ajustar existencias a mano",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario/{{insumoId}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario",
+                "{{insumoId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"existencia\": 20,\n  \"umbralMinimo\": 15\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Reposicion manual. Es la unica escritura humana en el inventario: los descuentos los hace el consumidor de eventos."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Insumos en umbral",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/inventario/alertas?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "inventario",
+                "alertas"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Liquidaciones del periodo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/liquidaciones?establecimientoId={{establecimientoId}}&desde={{desde}}&hasta={{hasta}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "liquidaciones"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resumen de ingresos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseOperaciones}}/resumen?establecimientoId={{establecimientoId}}&desde={{desde}}&hasta={{hasta}}",
+              "host": [
+                "{{baseOperaciones}}"
+              ],
+              "path": [
+                "resumen"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                },
+                {
+                  "key": "desde",
+                  "value": "{{desde}}"
+                },
+                {
+                  "key": "hasta",
+                  "value": "{{hasta}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Inventario e ingresos. Se alimenta escuchando eventos."
+    },
+    {
+      "name": "04 ms-relacion-cliente · puerto 8083",
+      "item": [
+        {
+          "name": "Notificaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseRelacion}}/notificaciones?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseRelacion}}"
+              ],
+              "path": [
+                "notificaciones"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Recurrencia de una clienta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseRelacion}}/clientes/{{clienteId}}/recurrencia?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseRelacion}}"
+              ],
+              "path": [
+                "clientes",
+                "{{clienteId}}",
+                "recurrencia"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clientas inactivas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseRelacion}}/clientes-inactivos?establecimientoId={{establecimientoId}}",
+              "host": [
+                "{{baseRelacion}}"
+              ],
+              "path": [
+                "clientes-inactivos"
+              ],
+              "query": [
+                {
+                  "key": "establecimientoId",
+                  "value": "{{establecimientoId}}"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Notificaciones y seguimiento de clientas."
+    },
+    {
+      "name": "05 simulador · puerto 8084",
+      "item": [
+        {
+          "name": "Estado del simulador",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseSimulador}}/estado",
+              "host": [
+                "{{baseSimulador}}"
+              ],
+              "path": [
+                "estado"
+              ]
+            },
+            "description": "Devuelve los ids que el simulador creo para si mismo. Sirve para mirar su establecimiento desde el frontend o desde aqui."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "Genera trafico solo, cada 15 segundos."
+    },
+    {
+      "name": "06 Gateway GraphQL · puerto 8000",
+      "item": [
+        {
+          "name": "Login (guarda el token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ($correo: String!, $clave: String!) {\\n  login(correo: $correo, clave: $clave) {\\n    token\\n    expiraEn\\n    nombre\\n    establecimientoId\\n    rol\\n  }\\n}\",\n  \"variables\": {\n    \"correo\": \"admin@demo.com\",\n    \"clave\": \"demo1234\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Login devolvio un token\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "    pm.expect(b.data.login.token, \"token\").to.be.a(\"string\").and.not.empty;",
+                  "    // Lo usan las peticiones protegidas de esta carpeta: Authorization: Bearer {{token}}",
+                  "    pm.collectionVariables.set(\"token\", b.data.login.token);",
+                  "    console.log(\"token guardado. Expira:\", b.data.login.expiraEn);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Establecimientos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query {\\n  establecimientos {\\n    id\\n    nombre\\n    telefono\\n  }\\n}\",\n  \"variables\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Fijate que pide solo tres campos. El tipo tiene mas, pero el cliente decide cuales recibe. Eso es lo que no da REST."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profesionales y servicios en UNA sola peticion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($est: ID!) {\\n  profesionales(establecimientoId: $est) { id nombre activo }\\n  servicios(establecimientoId: $est) { id nombre duracionMinutos precio }\\n}\",\n  \"variables\": {\n    \"est\": \"{{establecimientoId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Dos consultas distintas en un solo viaje de red. En REST serian dos peticiones."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agenda enriquecida (agregacion entre servicios)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($prof: ID!, $desde: String!, $hasta: String!) {\\n  agenda(profesionalId: $prof, desde: $desde, hasta: $hasta) {\\n    id\\n    inicio\\n    estado\\n    servicio\\n    duracionMinutos\\n    valorCobrado\\n  }\\n}\",\n  \"variables\": {\n    \"prof\": \"{{profesionalId}}\",\n    \"desde\": \"{{desde}}\",\n    \"hasta\": \"{{hasta}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "ESTA ES LA QUE HAY QUE MOSTRAR. El campo 'servicio' trae el NOMBRE, pero ms-agenda solo guarda el servicioId. El gateway va a ms-establecimientos por los nombres y devuelve todo junto. El cliente hizo una peticion donde habria hecho varias."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Agenda con confirmadaEn",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($prof: ID!, $desde: String!, $hasta: String!) {\\n  agenda(profesionalId: $prof, desde: $desde, hasta: $hasta) {\\n    id\\n    inicio\\n    estado\\n    servicio\\n    confirmadaEn\\n  }\\n}\",\n  \"variables\": {\n    \"prof\": \"{{profesionalId}}\",\n    \"desde\": \"{{desde}}\",\n    \"hasta\": \"{{hasta}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Igual que Agenda enriquecida, pero pidiendo confirmadaEn: null si la clienta no ha confirmado, fecha si ya lo hizo. Es la consulta que usa el panel para pintar la etiqueta Confirmada."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cupos libres",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($prof: ID!, $serv: ID!, $fecha: String!) {\\n  disponibilidad(profesionalId: $prof, servicioId: $serv, fecha: $fecha) {\\n    inicio\\n    fin\\n  }\\n}\",\n  \"variables\": {\n    \"prof\": \"{{profesionalId}}\",\n    \"serv\": \"{{servicioId}}\",\n    \"fecha\": \"{{fecha}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Inventario y resumen juntos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($est: ID!, $desde: String!, $hasta: String!) {\\n  inventario(establecimientoId: $est) {\\n    nombre\\n    existencia\\n    umbralMinimo\\n    enUmbral\\n  }\\n  resumenIngresos(establecimientoId: $est, desde: $desde, hasta: $hasta) {\\n    serviciosPrestados\\n    totalIngresos\\n  }\\n}\",\n  \"variables\": {\n    \"est\": \"{{establecimientoId}}\",\n    \"desde\": \"{{desde}}\",\n    \"hasta\": \"{{hasta}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Dos microservicios distintos respondiendo a una sola peticion del cliente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Notificaciones",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($est: ID!) {\\n  notificaciones(establecimientoId: $est) {\\n    tipo\\n    asunto\\n    cuerpo\\n    creadaEn\\n  }\\n}\",\n  \"variables\": {\n    \"est\": \"{{establecimientoId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clientas inactivas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query ($est: ID!) {\\n  clientesInactivos(establecimientoId: $est) {\\n    clienteId\\n    ultimaVisita\\n    proximoContacto\\n    totalVisitas\\n  }\\n}\",\n  \"variables\": {\n    \"est\": \"{{establecimientoId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mutacion: reservar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ($est: ID!, $prof: ID!, $serv: ID!, $cli: ID!,\\n          $inicio: String!, $fin: String!) {\\n  reservarCita(establecimientoId: $est, profesionalId: $prof,\\n               servicioId: $serv, clienteId: $cli,\\n               inicio: $inicio, fin: $fin) {\\n    id\\n    inicio\\n    estado\\n  }\\n}\",\n  \"variables\": {\n    \"est\": \"{{establecimientoId}}\",\n    \"prof\": \"{{profesionalId}}\",\n    \"serv\": \"{{servicioId}}\",\n    \"cli\": \"{{clienteId}}\",\n    \"inicio\": \"{{inicioGql}}\",\n    \"fin\": \"{{finGql}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Reserva pasando por el gateway. Usa una hora distinta a la del flujo REST para no chocar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "if (b.data && b.data.reservarCita) {",
+                  "    pm.collectionVariables.set(\"citaGqlId\", b.data.reservarCita.id);",
+                  "    console.log(\"citaGqlId =\", b.data.reservarCita.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mutacion: confirmar (publica, sin Authorization)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ($id: ID!) {\\n  confirmarCita(citaId: $id) {\\n    id\\n    estado\\n    confirmadaEn\\n  }\\n}\",\n  \"variables\": {\n    \"id\": \"{{citaGqlId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "La clienta confirma que asistira. Es PUBLICA (como reservar): no lleva Authorization. Es idempotente: confirmar dos veces devuelve la misma fecha. La cita sigue en estado agendada; solo se le anota confirmadaEn. Un citaId inexistente o una cita que ya no esta agendada devuelven INTERNAL_ERROR (limitacion conocida). Ejecutala despues de Mutacion: reservar y antes de Mutacion: cerrar."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "    pm.expect(b.data.confirmarCita.confirmadaEn, \"confirmadaEn\").to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(b.data.confirmarCita.estado).to.eql(\"agendada\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mutacion: cerrar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ($id: ID!, $valor: Float!) {\\n  cerrarCita(citaId: $id, valorCobrado: $valor) {\\n    id\\n    estado\\n    valorCobrado\\n  }\\n}\",\n  \"variables\": {\n    \"id\": \"{{citaGqlId}}\",\n    \"valor\": 45000\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mutacion: cancelar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"mutation ($id: ID!, $por: String!, $motivo: String) {\\n  cancelarCita(citaId: $id, canceladaPor: $por, motivo: $motivo) {\\n    id\\n    estado\\n  }\\n}\",\n  \"variables\": {\n    \"id\": \"{{citaGqlId}}\",\n    \"por\": \"cliente\",\n    \"motivo\": \"Cambio de planes\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"GraphQL no devolvio errores\", function () {",
+                  "    const b = pm.response.json();",
+                  "    if (b.errors) { console.log(JSON.stringify(b.errors, null, 2)); }",
+                  "    pm.expect(b.errors, \"errors deberia venir vacio\").to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Error a proposito: campo que no existe",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseGateway}}/graphql",
+              "host": [
+                "{{baseGateway}}"
+              ],
+              "path": [
+                "graphql"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"query {\\n  establecimientos {\\n    id\\n    colorDeLasParedes\\n  }\\n}\",\n  \"variables\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Para mostrar que el esquema se valida solo. Util si el profe pregunta por que GraphQL es un contrato."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GraphQL rechaza el campo inventado\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.errors, \"deberia venir un error de validacion\").to.not.be.undefined;",
+                  "    console.log(JSON.stringify(b.errors, null, 2));",
+                  "});",
+                  "// El esquema ES el contrato: el gateway valida la consulta contra el",
+                  "// esquema ANTES de llamar a ningun microservicio. Un campo que no existe",
+                  "// no llega siquiera a ejecutarse."
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "La puerta unica para el frontend. Una sola URL, un solo contrato: el esquema.\n\nAlgunas operaciones exigen sesion. Ejecuta primero **Login (guarda el token)**: guarda el token en la variable de coleccion `token`, y las peticiones **Inventario y resumen juntos**, **Notificaciones**, **Clientas inactivas** y **Mutacion: cerrar** lo envian en la cabecera `Authorization: Bearer {{token}}`. El token dura 8 horas; si caduca, vuelve a ejecutar el login.\n\nLas demas son publicas, incluida **Mutacion: cancelar**, que envia `\"por\": \"cliente\"`."
+    }
+  ]
+}

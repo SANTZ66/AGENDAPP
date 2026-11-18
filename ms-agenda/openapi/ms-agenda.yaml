@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: ms-agenda
+  description: >
+    API REST de gestion de citas. Reserva, confirmacion, cierre y cancelacion, con
+    control de concurrencia en la reserva mediante una restriccion UNIQUE
+    en PostgreSQL.
+
+    Este contrato corresponde exactamente a los endpoints implementados en
+    el proyecto Spring Boot (paquete com.fet.citas.agenda.api).
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /disponibilidad:
+    get:
+      summary: Cupos libres de un profesional en una fecha
+      parameters:
+        - name: profesionalId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: fecha
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Franjas disponibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FranjaDisponible"
+
+  /citas:
+    post:
+      summary: Reserva una cita (transaccional)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservarCitaRequest"
+      responses:
+        "201":
+          description: Cita creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CitaResponse"
+        "400":
+          description: Datos invalidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: El cupo ya fue tomado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    get:
+      summary: Agenda de un profesional por rango de fechas (paginada)
+      parameters:
+        - name: profesionalId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: desde
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Pagina de citas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaCitas"
+
+  /citas/proximas:
+    get:
+      summary: Citas agendadas que empiezan en un rango, de cualquier profesional (paginada)
+      description: >
+        A diferencia de GET /citas no exige un profesional. Devuelve solo
+        citas en estado agendada, ordenadas por inicio, con los extremos del
+        rango inclusivos. Conviene enviar las fechas en UTC (terminadas en Z).
+      parameters:
+        - name: desde
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: hasta
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+        - name: size
+          in: query
+          required: false
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: Pagina de citas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaCitas"
+
+  /citas/{citaId}/confirmacion:
+    post:
+      summary: La clienta confirma que asistira a la cita
+      description: >
+        Idempotente: confirmar dos veces devuelve la misma cita con la fecha
+        de la primera confirmacion. No cambia el estado de la cita ni publica
+        ningun evento.
+      parameters:
+        - $ref: "#/components/parameters/CitaId"
+      responses:
+        "200":
+          description: Cita confirmada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CitaResponse"
+        "404":
+          description: Cita no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: La cita no esta en estado agendada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /citas/{citaId}/cierre:
+    post:
+      summary: Cierra una cita tras prestar el servicio
+      parameters:
+        - $ref: "#/components/parameters/CitaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CerrarCitaRequest"
+      responses:
+        "200":
+          description: Cita cerrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CitaResponse"
+        "404":
+          description: Cita no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: La cita no esta en estado agendada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /citas/{citaId}/cancelacion:
+    post:
+      summary: Cancela una cita y libera el cupo
+      parameters:
+        - $ref: "#/components/parameters/CitaId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelarCitaRequest"
+      responses:
+        "200":
+          description: Cita cancelada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CitaResponse"
+        "404":
+          description: Cita no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: La cita no esta en estado agendada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  parameters:
+    CitaId:
+      name: citaId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    FranjaDisponible:
+      type: object
+      properties:
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+
+    ReservarCitaRequest:
+      type: object
+      required: [establecimientoId, profesionalId, servicioId, clienteId, inicio, fin]
+      properties:
+        establecimientoId: { type: string, format: uuid }
+        profesionalId: { type: string, format: uuid }
+        servicioId: { type: string, format: uuid }
+        clienteId: { type: string, format: uuid }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+
+    CerrarCitaRequest:
+      type: object
+      required: [valorCobrado]
+      properties:
+        valorCobrado: { type: number, format: double, minimum: 0 }
+
+    CancelarCitaRequest:
+      type: object
+      required: [canceladaPor]
+      properties:
+        canceladaPor:
+          type: string
+          enum: [cliente, profesional]
+        motivo: { type: string }
+
+    CitaResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        establecimientoId: { type: string, format: uuid }
+        profesionalId: { type: string, format: uuid }
+        servicioId: { type: string, format: uuid }
+        clienteId: { type: string, format: uuid }
+        inicio: { type: string, format: date-time }
+        fin: { type: string, format: date-time }
+        estado:
+          type: string
+          enum: [agendada, cancelada, completada]
+        valorCobrado: { type: number, format: double, nullable: true }
+        confirmadaEn:
+          type: string
+          format: date-time
+          nullable: true
+          description: Cuando la clienta confirmo su asistencia; null si no lo ha hecho
+
+    PaginaCitas:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/CitaResponse"
+        totalElements: { type: integer }
+        totalPages: { type: integer }
+        number: { type: integer }
+        size: { type: integer }
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer }
+        error: { type: string }
+        mensaje: { type: string }
+        detalles:
+          type: object
+          additionalProperties: { type: string }
+          nullable: true

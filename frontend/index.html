@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f4f5" />
+    <meta name="description" content="AGENDAPP: agenda, reservas e inventario para un salón de servicios por cita." />
+    <title>AGENDAPP</title>
+
+    <!-- Las tipografias viajan dentro del proyecto, no se descargan de
+         ningun servidor externo: la aplicacion abre igual sin internet.
+         Se precargan para que el texto no cambie de fuente a la vista. -->
+    <link rel="preload" href="/fuentes/jakarta.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fuentes/fraunces.woff2" as="font" type="font/woff2" crossorigin />
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c5 6 8 9.6 8 13.2a8 8 0 0 1-16 0C8 13.6 11 10 16 4z' fill='%23b3123f'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <!-- React monta toda la aplicacion dentro de este div. -->
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

@@ -1,0 +1,231 @@
+# Plataforma multiestablecimiento de servicios por cita
+# Grupo 3 - Equipo 5 - FET
+#
+#   docker compose up --build        levantar todo
+#   docker compose ps                ver estado
+#   docker compose logs -f ms-agenda ver registros de un servicio
+#   docker compose down              detener
+#   docker compose down -v           detener y BORRAR los datos
+#
+# Puertos publicados en el equipo:
+#   8000  gateway-graphql   (GraphiQL en /graphiql)
+#   8080  ms-agenda
+#   8081  ms-establecimientos
+#   8082  ms-operaciones
+#   8083  ms-relacion-cliente
+#   8084  simulador         (estado en /estado)
+#   3000  frontend          (la aplicacion React)
+#   8090  kafka-ui          (interfaz grafica de Kafka)
+#   5432  postgres
+#   9092  kafka
+
+services:
+
+  # ── Base de datos ─────────────────────────────────────────────────────────
+  # Una sola instancia con un esquema independiente por servicio. Ningun
+  # servicio consulta el esquema de otro (seccion 7.3 del documento).
+  postgres:
+    image: postgres:16
+    container_name: agenda-postgres
+    environment:
+      POSTGRES_USER: citas
+      POSTGRES_PASSWORD: citas
+      POSTGRES_DB: citas
+    ports:
+      - "5432:5432"
+    volumes:
+      - agenda-data:/var/lib/postgresql/data
+      - ./db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citas"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Bus de eventos ────────────────────────────────────────────────────────
+  # Kafka en modo KRaft: sin ZooKeeper, un solo nodo que hace de broker y de
+  # controlador. Dos direcciones para el mismo broker:
+  #   kafka:29092       desde otro contenedor
+  #   localhost:9092    desde el equipo
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: agenda-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # El host va VACIO, no 0.0.0.0: Kafka entiende que debe escuchar en
+      # todas las interfaces, y evita que la imagen copie 0.0.0.0 a
+      # advertised.listeners, que es una direccion a la que nadie puede
+      # conectarse y hace que el broker se niegue a arrancar.
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNO://:29092,EXTERNO://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNO://kafka:29092,EXTERNO://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNO:PLAINTEXT,EXTERNO:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNO
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: agenda-cluster-local-0001
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
+
+  # ── Interfaz grafica de Kafka ─────────────────────────────────────────────
+  # Herramienta de desarrollo, NO forma parte de la arquitectura entregada.
+  # Permite ver los topics y los mensajes en http://localhost:8090
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: agenda-kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_READONLY: "false"
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  # ── ms-establecimientos ───────────────────────────────────────────────────
+  # Configuracion de cada inquilino: establecimientos, profesionales y
+  # catalogo de servicios con sus insumos. No produce eventos.
+  ms-establecimientos:
+    build: ./ms-establecimientos
+    container_name: ms-establecimientos
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/citas
+      DB_USER: citas
+      DB_PASSWORD: citas
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── ms-agenda ─────────────────────────────────────────────────────────────
+  # Disponibilidad y ciclo de vida de la cita. Unico productor de eventos.
+  ms-agenda:
+    build: ./ms-agenda
+    container_name: ms-agenda
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/citas
+      DB_USER: citas
+      DB_PASSWORD: citas
+      KAFKA_SERVERS: kafka:29092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ── ms-operaciones ────────────────────────────────────────────────────────
+  # Lo que el servicio prestado consume y lo que produce: inventario de
+  # insumos y liquidacion de ingresos. Consume citas.completada.
+  ms-operaciones:
+    build: ./ms-operaciones
+    container_name: ms-operaciones
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/citas
+      DB_USER: citas
+      DB_PASSWORD: citas
+      KAFKA_SERVERS: kafka:29092
+      ESTABLECIMIENTOS_URL: http://ms-establecimientos:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ── ms-relacion-cliente ───────────────────────────────────────────────────
+  # Todo lo que mira hacia el cliente: recurrencia, valoraciones y entrega de
+  # notificaciones. Consume cuatro topics.
+  ms-relacion-cliente:
+    build: ./ms-relacion-cliente
+    container_name: ms-relacion-cliente
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/citas
+      DB_USER: citas
+      DB_PASSWORD: citas
+      KAFKA_SERVERS: kafka:29092
+      AGENDA_URL: http://ms-agenda:8080
+      ESTABLECIMIENTOS_URL: http://ms-establecimientos:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  # ── simulador ─────────────────────────────────────────────────────────────
+  # Genera actividad sintetica llamando a la API REST de ms-agenda, igual
+  # que lo haria una aplicacion cliente. NO publica en Kafka directamente:
+  # los eventos los emite ms-agenda tras confirmar la transaccion.
+  #
+  # Se apaga poniendo SIMULADOR_ACTIVO en "false".
+  simulador:
+    build: ./simulador
+    container_name: simulador
+    ports:
+      - "8084:8084"
+    environment:
+      ESTABLECIMIENTOS_URL: http://ms-establecimientos:8081
+      AGENDA_URL: http://ms-agenda:8080
+      OPERACIONES_URL: http://ms-operaciones:8082
+      SIMULADOR_ACTIVO: "true"
+      SIMULADOR_INTERVALO_MS: "15000"
+    depends_on:
+      - ms-establecimientos
+      - ms-agenda
+      - ms-operaciones
+
+  # ── gateway-graphql ───────────────────────────────────────────────────────
+  # Punto de entrada unico. Agrega informacion de varios servicios en una
+  # sola consulta. No contiene logica de negocio ni base de datos.
+  gateway-graphql:
+    build: ./gateway-graphql
+    container_name: gateway-graphql
+    ports:
+      - "8000:8000"
+    environment:
+      ESTABLECIMIENTOS_URL: http://ms-establecimientos:8081
+      AGENDA_URL: http://ms-agenda:8080
+      OPERACIONES_URL: http://ms-operaciones:8082
+      RELACION_URL: http://ms-relacion-cliente:8083
+    depends_on:
+      - ms-establecimientos
+      - ms-agenda
+      - ms-operaciones
+      - ms-relacion-cliente
+
+  # ── frontend ──────────────────────────────────────────────────────────────
+  # Aplicacion React compilada y servida por nginx. Consume UNICAMENTE el
+  # gateway GraphQL, nunca las APIs REST de cada servicio: esa es la razon
+  # de ser del gateway.
+  #
+  # nginx reenvia /graphql al gateway, asi que el navegador solo habla con
+  # un origen y no hay problema de CORS.
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway-graphql
+
+volumes:
+  agenda-data:
