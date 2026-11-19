@@ -32,17 +32,24 @@ Implementación de la arquitectura aprobada: cuatro microservicios con APIs REST
 Requiere únicamente **Docker Desktop**. No hace falta instalar Java ni Maven: se compila dentro de los contenedores.
 
 ```bash
-docker compose down -v        # IMPORTANTE la primera vez (ver abajo)
 docker compose up --build
 ```
 
-La primera vez tarda varios minutos porque descarga Maven y las dependencias de los cinco servicios. Está listo cuando cada servicio imprime `Started ... in N seconds`.
+La primera vez tarda varios minutos porque descarga Maven y las dependencias de los seis servicios Java y compila el frontend (medido en una carpeta limpia: unos 7 minutos hasta devolver el control, casi todo construyendo imágenes; después, entre 11 y 21 s hasta el `Started` de cada servicio). Está listo cuando cada servicio imprime `Started ... in N seconds`.
 
-Para detener: `Ctrl+C` y luego `docker compose down`.
+Para detener: `Ctrl+C` y luego `docker compose down`. Eso conserva los datos; `docker compose down -v` los borra (ver el aviso de abajo).
 
-### Por qué el `down -v` la primera vez
+### Antes de levantar: apaga cualquier otra copia
 
-PostgreSQL solo ejecuta `db-init/` cuando el volumen está vacío. Si vienen de la entrega anterior, el volumen ya existe con un único esquema `agenda` y los esquemas nuevos no se crearían. El `-v` borra el volumen y lo recrea con los cuatro.
+`docker-compose.yml` fija los puertos publicados (3000, 5432, 8000, 8080–8084, 8090, 9092) y los `container_name` (`agenda-postgres`, `agenda-kafka`, `ms-agenda`, etc.). Por eso **no pueden convivir dos copias**, aunque usen `-p` con otro nombre de proyecto: la segunda falla por puerto ocupado o por nombre de contenedor repetido. Apaga la otra con `docker compose down` en su carpeta antes de levantar esta.
+
+### Los datos viven en un volumen
+
+PostgreSQL guarda sus datos en el volumen `agenda-data`, que Compose nombra con el del proyecto (por defecto, el de la carpeta). Una carpeta nueva parte con un volumen vacío; una carpeta que ya se levantó antes conserva sus datos entre arranques.
+
+- **No hace falta `down -v` para el primer arranque.** Una carpeta limpia crea su propio volumen vacío y `db-init/` crea los cuatro esquemas.
+- **`down -v` borra los datos de esa carpeta.** Úsalo solo si quieres empezar de cero a propósito y no hay nada que conservar.
+- Caso particular: si el volumen es de una entrega anterior, que solo tenía el esquema `agenda`, `db-init/` no se vuelve a ejecutar sobre un volumen que ya existe y los esquemas nuevos no se crean. Ahí sí hay que recrear el volumen (`down -v`), sabiendo que se pierden sus datos.
 
 ---
 
@@ -123,12 +130,35 @@ query {
 
 ## Pruebas
 
+Hay pruebas automáticas en **cuatro** módulos. `ms-establecimientos`, `simulador` y `frontend` **no tienen pruebas**.
+
+| Módulo | Pruebas | Resultado medido el 2026-11-19 |
+|---|---|---|
+| `ms-agenda` | `CitaControllerTest` (17) y `PublicacionEventosTest` (2) | 19 / 19 |
+| `ms-operaciones` | `FlujoEventosTest` | 3 / 3 |
+| `ms-relacion-cliente` | `ClientesRestTest` (9) y `GeneradorRecordatoriosTest` (16) | 25 / 25 |
+| `gateway-graphql` | `EmisorJwtTest` | 7 / 7 |
+
+**¿Hace falta Maven?** Para correrlas **directamente en tu equipo, sí**: JDK 21 y Maven (el repositorio no trae Maven Wrapper):
+
 ```bash
 cd ms-agenda && mvn test
 cd ../ms-operaciones && mvn test
+cd ../ms-relacion-cliente && mvn test
+cd ../gateway-graphql && mvn test
 ```
 
-Usan `@EmbeddedKafka`: un broker de Kafka real que arranca dentro de la misma JVM del test. No necesitan Docker ni que el compose esté levantado.
+**Sin instalar Java ni Maven**, con Docker y la misma imagen que usan los Dockerfile (`maven:3.9-eclipse-temurin-21`), por módulo:
+
+```bash
+docker run --rm -v "$PWD/ms-agenda":/app -w /app maven:3.9-eclipse-temurin-21 mvn test
+```
+
+(En PowerShell, `${PWD}` en lugar de `$PWD`.) *No verificado: este comando con Docker no se ejecutó; los resultados medidos de arriba salieron con Maven instalado en el equipo.* Sus logs están en [`docs/evidencias/`](docs/evidencias/).
+
+Las pruebas **no necesitan que el compose esté levantado**: usan H2 en lugar de PostgreSQL y, donde hace falta, `@EmbeddedKafka` (un broker que arranca dentro de la JVM del test, basado en ZooKeeper, no en KRaft). Por eso no prueban la restricción `UNIQUE` en PostgreSQL real ni el broker del compose. Detalle en [`docs/pruebas-y-evidencias.md`](docs/pruebas-y-evidencias.md).
+
+Algunas pruebas de `ms-agenda` y `ms-operaciones`:
 
 | Prueba | Qué verifica |
 |---|---|
@@ -246,7 +276,13 @@ La versión **cliente** (`/cliente`: reservar, Mis citas) es pública. El panel 
 |---|---|
 | `admin@demo.com` | `demo1234` |
 
-Ese usuario de prueba se crea solo, unos segundos después de arrancar, ligado al establecimiento más antiguo (el del simulador). El establecimiento lo fija la sesión: en el panel ya no se elige.
+Ese usuario de prueba se crea solo, unos segundos después de arrancar, ligado al establecimiento más antiguo que exista en ese momento. El establecimiento lo fija la sesión: en el panel ya no se elige.
+
+> **Ojo: puede no ser el establecimiento del simulador.** En un arranque limpio medido el 2026-11-19 se crearon **dos** «Establecimiento de simulacion» y el admin quedó ligado al más antiguo, que **no** era el que usa el simulador. Con esa sesión el panel `/negocio` no muestra la actividad del simulador (`notificaciones` devolvió 0 filas).
+>
+> **Causa (inferida leyendo el código y el log; no reproducida por separado):** `SemillaDatos` del simulador crea establecimiento, profesional, servicio e insumo, y si **cualquier** paso falla repite todo desde el principio, sin comprobar lo ya creado. En ese arranque el log muestra un intento fallido en `POST /establecimientos` y otro en `POST /inventario` (ms-operaciones aún no respondía); este segundo ya había creado un establecimiento, y el intento siguiente creó otro. `SembradoUsuarios` elige el de menor `creadoEn`, o sea el del intento incompleto. Solo ocurre si algún servicio tarda en responder cuando arranca el simulador.
+>
+> **Cómo reconocerlo:** compara tres datos. 1) `GET http://localhost:8081/establecimientos` lista dos con el nombre «Establecimiento de simulacion». 2) `GET http://localhost:8084/estado` devuelve el `establecimientoId` del simulador. 3) `login` devuelve el `establecimientoId` del admin (también lo dice el log de `ms-establecimientos`: «Usuario de prueba admin@demo.com creado para el establecimiento …»). Si 2 y 3 no coinciden, estás en este caso. En la aplicación no hay forma de cambiar el establecimiento del admin; empezar de cero exige `docker compose down -v`, que **borra los datos**, así que hazlo solo si no hay nada que conservar.
 
 **Cómo está repartido**
 
@@ -357,7 +393,7 @@ La versión cliente no tiene autenticación, así que elige el establecimiento d
 
 ## Limitaciones conocidas
 
-- **Cancelar no libera el cupo.** La restricción `UNIQUE (profesional_id, inicio)` no distingue el estado, así que una franja cancelada no vuelve a quedar disponible. Está pendiente de corregir.
+- **Cancelar no libera el cupo (medido).** La restricción `UNIQUE (profesional_id, inicio)` no distingue el estado. Medido el 2026-11-19 con el sistema levantado: reservar las 10:00, cancelar (200, `cancelada`) y volver a reservar el mismo horario devolvió **409**, y `/disponibilidad` siguió sin ofrecer esa franja; por GraphQL el error sale como `INTERNAL_ERROR`. Evidencia: [`docs/evidencias/prueba-carpeta-limpia.txt`](docs/evidencias/prueba-carpeta-limpia.txt), §5.7. Está pendiente de corregir.
 - **Las notificaciones se registran, no se envían.** Integrar WhatsApp Business API exige una cuenta aprobada y tiene costo. Está declarado fuera de alcance en el riesgo R5.
 - **Autenticación parcial.** Solo el panel del establecimiento tiene inicio de sesión; la versión cliente es pública y no hay registro de clientes. El filtrado por token existe en `inventario`, `resumenIngresos`, `notificaciones` y `clientesInactivos`, pero no en `cerrarCita` ni en `agenda`. Los límites completos están en [Inicio de sesión del establecimiento](#inicio-de-sesión-del-establecimiento).
 - **La periodicidad del recontacto es fija** (28 días, configurable por propiedad). Afinarla por servicio queda pendiente.
@@ -367,13 +403,13 @@ La versión cliente no tiene autenticación, así que elige el establecimiento d
 ## Problemas frecuentes
 
 **Un servicio no arranca y dice que el esquema no existe**
-Ejecuten `docker compose down -v` y vuelvan a levantar.
+Ejecuten `docker compose down -v` y vuelvan a levantar. **Atención: `-v` borra los datos de la base.**
 
 **`port is already allocated`**
-Otro programa usa ese puerto. Cambien el número de la izquierda en `docker-compose.yml`, por ejemplo `"5433:5432"`.
+Otro programa usa ese puerto. Si es otra copia de esta aplicación, apáguenla con `docker compose down` (los puertos y nombres de contenedor son fijos). Si es otro programa, cambien el número de la izquierda en `docker-compose.yml`, por ejemplo `"5433:5432"`.
 
 **Kafka se reinicia en bucle**
-Suele ser el `CLUSTER_ID` sobre datos viejos. `docker compose down -v` y levantar de nuevo.
+Suele ser el `CLUSTER_ID` sobre datos viejos. `docker compose down -v` y levantar de nuevo (**borra los datos**).
 
 **Los consumidores no reciben nada**
 Verifiquen en Kafka UI que el topic existe y tiene mensajes. Desde un contenedor la dirección es `kafka:29092`; desde el equipo, `localhost:9092`.
