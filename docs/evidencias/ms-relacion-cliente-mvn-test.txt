@@ -1,0 +1,77 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------< com.fet.citas:ms-relacion-cliente >------------------
+[INFO] Building ms-relacion-cliente 0.1.0
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ms-relacion-cliente ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ ms-relacion-cliente ---
+[INFO] Recompiling the module because of added or removed source files.
+[INFO] Compiling 15 source files with javac [debug parameters release 21] to target\classes
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ ms-relacion-cliente ---
+[INFO] skip non existing resourceDirectory C:\Users\USUARIO\OneDrive\Escritorio\plataforma-citas\ms-relacion-cliente\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ ms-relacion-cliente ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 2 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.2.5:test (default-test) @ ms-relacion-cliente ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running com.fet.citas.relacion.clientes.ClientesRestTest
+00:25:23.986 [main] WARN com.fet.citas.relacion.clientes.EstablecimientosClient -- No se pudo consultar la lista de establecimientos: I/O error on GET request for "http://127.0.0.1:55189/establecimientos": null
+00:25:24.016 [main] WARN com.fet.citas.relacion.clientes.EstablecimientosClient -- No se pudo consultar la lista de establecimientos: 503 Service Unavailable: "{}"
+00:25:24.025 [main] WARN com.fet.citas.relacion.clientes.AgendaClient -- No se pudieron consultar las citas proximas: 500 Internal Server Error: "{"error":"boom"}"
+00:25:24.069 [main] WARN com.fet.citas.relacion.clientes.AgendaClient -- No se pudieron consultar las citas proximas: I/O error on GET request for "http://127.0.0.1:65314/citas/proximas": null
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.859 s -- in com.fet.citas.relacion.clientes.ClientesRestTest
+[INFO] Running com.fet.citas.relacion.dominio.GeneradorRecordatoriosTest
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\USUARIO\.m2\repository\net\bytebuddy\byte-buddy-agent\1.14.19\byte-buddy-agent-1.14.19.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+00:25:25.199 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 11111111-1111-1111-1111-111111111111
+00:25:25.294 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorio de la cita 11111111-1111-1111-1111-111111111111 ya registrado por otra via, se ignora
+00:25:25.294 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 1 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 2 citas revisadas
+00:25:25.306 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 11111111-1111-1111-1111-111111111111
+00:25:25.306 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.307 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion recordatorio-cita de la cita 11111111-1111-1111-1111-111111111111 ya existia, se ignora
+00:25:25.307 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 1 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.314 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 1 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.319 [main] WARN com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: no hay establecimientos (o ms-establecimientos no responde); se reintenta en la siguiente vuelta
+00:25:25.325 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 0 citas revisadas
+00:25:25.328 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion recordatorio-cita de la cita 11111111-1111-1111-1111-111111111111 ya existia, se ignora
+00:25:25.328 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 1 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.332 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 11111111-1111-1111-1111-111111111111
+00:25:25.332 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 0 ya existian | 0 ya confirmadas | 1 fuera de ventana | 0 de establecimientos desconocidos | 2 citas revisadas
+00:25:25.335 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 0 ya confirmadas | 2 fuera de ventana | 0 de establecimientos desconocidos | 2 citas revisadas
+00:25:25.342 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 1 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.347 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 11111111-1111-1111-1111-111111111111
+00:25:25.347 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.350 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 11111111-1111-1111-1111-111111111111
+00:25:25.351 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.706 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 0 ya confirmadas | 0 fuera de ventana | 0 de establecimientos desconocidos | 0 citas revisadas
+00:25:25.709 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 0 nuevos | 0 ya existian | 0 ya confirmadas | 1 fuera de ventana | 0 de establecimientos desconocidos | 1 citas revisadas
+00:25:25.712 [main] INFO com.fet.citas.relacion.dominio.RelacionService -- Notificacion registrada: recordatorio-cita para la cita 22222222-2222-2222-2222-222222222222
+00:25:25.712 [main] INFO com.fet.citas.relacion.dominio.GeneradorRecordatorios -- Recordatorios: 1 nuevos | 0 ya existian | 0 ya confirmadas | 1 fuera de ventana | 0 de establecimientos desconocidos | 2 citas revisadas
+[INFO] Tests run: 16, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.634 s -- in com.fet.citas.relacion.dominio.GeneradorRecordatoriosTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.962 s
+[INFO] Finished at: 2026-11-19T00:25:25-05:00
+[INFO] ------------------------------------------------------------------------
+exit=0
