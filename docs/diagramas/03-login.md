@@ -32,6 +32,7 @@ sequenceDiagram
   participant N as Navegador
   participant G as gateway-graphql
   N->>G: Petición con Bearer token
+  Note over G: Valida firma y vencimiento
   alt Token válido
     G-->>N: Datos
   else Vencido o alterado
@@ -45,6 +46,7 @@ sequenceDiagram
 | Mensaje del diagrama | Detalle técnico | Fuente |
 |---|---|---|
 | Petición con Bearer token | Cabecera `Authorization: Bearer <token>` | `InterceptorSesion.java` |
+| Valida firma y vencimiento | `EmisorJwt.validar` verifica la firma HS256 y la expiración (`verifyWith`, reloj) | `EmisorJwt.java` |
 | Token válido: datos | El interceptor deja la sesión en el contexto; cada operación decide con `Exigir` si la requiere | `InterceptorSesion.java`, `Exigir.java` |
 | Vencido o alterado: error de sesión | El interceptor registra `vencida` o `invalida`; la operación protegida falla con `NoAutenticado` | `InterceptorSesion.java`, `EmisorJwt.validar` |
 | «Tu sesión venció» y vuelta al login | El frontend cierra la sesión y muestra el aviso «Tu sesión venció. Inicia sesión de nuevo.» | `frontend/src/api/graphql.js`, `App.jsx` |

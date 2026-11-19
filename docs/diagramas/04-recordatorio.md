@@ -4,8 +4,8 @@
 
 ```mermaid
 sequenceDiagram
-  participant J as GeneradorRecordatorios
-  participant C as Servicios consultados
+  participant J as GeneradorRecordatorios<br/>(ms-relacion-cliente)
+  participant C as ms-establecimientos<br/>y ms-agenda
   participant S as RelacionService
   Note over J: Cada 60 segundos
   J->>C: Pide ventanas y citas próximas
@@ -13,6 +13,7 @@ sequenceDiagram
   Note over J: Dentro de la ventana y sin confirmar
   J->>S: Registrar recordatorio
   Note over S: Se guarda una sola vez por cita
+  Note over S: Solo registra el recordatorio#59;<br/>no envía WhatsApp ni correo
 ```
 
 ![Recordatorio automático](img/04a-recordatorio.png)
@@ -22,9 +23,10 @@ Regla: dentro de la ventana y sin confirmar, registra el recordatorio, una sola 
 | Mensaje del diagrama | Detalle técnico | Fuente |
 |---|---|---|
 | Cada 60 segundos | `@Scheduled` fixedDelay 60000 ms, espera inicial 30000 ms; activo por defecto (`RECORDATORIOS_ACTIVO:true`) | `GeneradorRecordatorios.java`, `application.properties` de ms-relacion-cliente |
-| Pide ventanas y citas próximas | «Servicios consultados» agrupa dos: `GET /establecimientos` (ventana de confirmación de cada uno, en ms-establecimientos) y `GET /citas/proximas?desde&hasta` (ms-agenda, paginada) | `EstablecimientosClient.java`, `AgendaClient.java`, `CitaController.java` |
+| Pide ventanas y citas próximas | «ms-establecimientos y ms-agenda» agrupa los dos servicios consultados: `GET /establecimientos` (ventana de confirmación de cada uno, en ms-establecimientos) y `GET /citas/proximas?desde&hasta` (ms-agenda, paginada) | `EstablecimientosClient.java`, `AgendaClient.java`, `CitaController.java` |
 | Dentro de la ventana y sin confirmar | `ahora < inicio <= ahora + ventana` y `confirmadaEn` vacío; se omiten las confirmadas, las de establecimientos desconocidos y las fuera de ventana | `GeneradorRecordatorios.revisar()` |
 | Registrar recordatorio | `RelacionService.recordatorio()` llama a `registrar()`, tipo `recordatorio-cita` | `RelacionService.java` |
+| Solo registra el recordatorio; no envía WhatsApp ni correo | No hay envío real: la notificación solo se guarda; el comentario de `Notificacion.java` indica que el canal real (WhatsApp Business API) exige una cuenta aprobada | `Notificacion.java` |
 | Se guarda una sola vez por cita | `existsByCitaIdAndTipo` y restricción `UNIQUE (cita_id, tipo)`; `DataIntegrityViolationException` se trata como ya registrada | `RelacionService.java`, `Notificacion.java` |
 
 ## 4b. Confirmación de la clienta

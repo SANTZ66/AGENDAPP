@@ -1,6 +1,6 @@
 sequenceDiagram
-  participant J as GeneradorRecordatorios
-  participant C as Servicios consultados
+  participant J as GeneradorRecordatorios<br/>(ms-relacion-cliente)
+  participant C as ms-establecimientos<br/>y ms-agenda
   participant S as RelacionService
   Note over J: Cada 60 segundos
   J->>C: Pide ventanas y citas próximas
@@ -8,3 +8,4 @@ sequenceDiagram
   Note over J: Dentro de la ventana y sin confirmar
   J->>S: Registrar recordatorio
   Note over S: Se guarda una sola vez por cita
+  Note over S: Solo registra el recordatorio#59;<br/>no envía WhatsApp ni correo
