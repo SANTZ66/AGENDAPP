@@ -146,18 +146,37 @@ Evidencia: [gateway-graphql-mvn-test.txt](evidencias/gateway-graphql-mvn-test.tx
 
 | Caso | Esperado | Obtenido | Estado | Evidencia |
 |---|---|---|---|---|
-| Flujo completo con `docker compose up` (reserva → Kafka → liquidación, notificación, recurrencia) | Eventos consumidos por ambos grupos | No ejecutado en esta sesión | Simulado (lo ejercita el simulador; sin medición) | — |
+| Flujo completo con `docker compose up` (reserva → Kafka → liquidación, notificación, recurrencia) | Eventos consumidos por ambos grupos | **Parcial, medido en 4.8** (R-08): topics y lag 0. No se midió la liquidación ni la recurrencia | Medido (parcial) | [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt) §5.8 |
 | Citas sintéticas del simulador cada 15 s | Citas creadas y cerradas/canceladas | No ejecutado | Simulado (sin medición) | — |
-| Job de recordatorios en ejecución real (60 s) | Recordatorio registrado al entrar en la ventana | No ejecutado; solo su lógica con colaboradores simulados (4.5) | Futuro | — |
-| Siembra del usuario admin y login de extremo a extremo | `login` devuelve token | No ejecutado; sin tests de `SembradoUsuarios`, `AuthController` ni `login` | Futuro | — |
-| Reglas de acceso del gateway (`UNAUTHORIZED` / `FORBIDDEN`) sobre GraphQL | Código correcto por operación | No ejecutado; solo `EmisorJwt` está probado | Futuro | — |
+| Job de recordatorios en ejecución real (60 s) | Recordatorio registrado al entrar en la ventana | **Medido en 4.8** (R-05) | Medido | [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt) §5.6 |
+| Siembra del usuario admin y login de extremo a extremo | `login` devuelve token | **Medido en 4.8** (R-02, R-03) | Medido | [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt) §5.2 |
+| Reglas de acceso del gateway (`UNAUTHORIZED` / `FORBIDDEN`) sobre GraphQL | Código correcto por operación | **Parcial, medido en 4.8**: `UNAUTHORIZED` sin token y con clave mala. `FORBIDDEN` (otro establecimiento) y token vencido no se midieron | Medido (parcial) | [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt) §5.2 |
 | Restricción `cupo_unico` en PostgreSQL real y reservas simultáneas | Una sola gana | No ejecutado (las pruebas usan H2, secuencial) | Futuro | — |
-| Cancelar y volver a reservar la misma hora | Debería poder reservarse | No hay prueba; el código sugiere que daría 409 (manual, sección 9) | Futuro | — |
+| Cancelar y volver a reservar la misma hora | Debería poder reservarse | **Medido en 4.8 (R-07): NO se puede, devuelve 409** | Medido (defecto confirmado) | [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt) §5.7 |
 | Reintentos y DLT con Kafka real (KRaft 3.9.0) | Mensaje en `.DLT` tras 3 reintentos | No ejecutado con el broker del compose | Futuro | — |
 | ms-establecimientos | — | **Sin tests** | Futuro | — |
 | simulador | — | **Sin tests** | Futuro | — |
 | frontend | — | **Sin tests** | Futuro | — |
 | Carga y rendimiento | — | Ninguna prueba | Futuro | — |
+
+### 4.8 Medido contra el sistema levantado (prueba de carpeta limpia)
+
+Sistema construido desde el ZIP de `git archive` con `docker compose -p agendapp-prueba up --build -d` en Windows 11 / Docker 29.8.1, el 2026-11-19. Tiempos medidos: 425 s hasta que `up --build -d` devolvió el control (incluye la construcción de las imágenes), y 11–21 s más hasta el `Started` de cada servicio Spring. Evidencia completa: [prueba-carpeta-limpia.txt](evidencias/prueba-carpeta-limpia.txt). Todo con Postgres 16 y Kafka KRaft reales del compose, no H2 ni Kafka embebido.
+
+| ID | Caso | Esperado | Obtenido | Estado |
+|---|---|---|---|---|
+| R-01 | Frontend :3000, Swagger de ms-agenda/establecimientos/operaciones/relacion-cliente, GraphiQL :8000, simulador `/estado`, Kafka UI :8090 | 200 | 200 en todos (`/swagger-ui.html` responde 302 y luego 200 al seguir la redirección) | Medido |
+| R-02 | `login` con `admin@demo.com` / `demo1234` | Token y establecimiento | Token JWT, `expiraEn` ≈ 8 h, `establecimientoId` devuelto | Medido |
+| R-03 | `login` con clave incorrecta | `UNAUTHORIZED` | HTTP 200 con `errors[0].extensions.classification = UNAUTHORIZED`, «Correo o clave incorrectos», `data.login = null` | Medido |
+| R-04 | `notificaciones` sin token y con token | Sin token `UNAUTHORIZED`; con token datos | Sin token: `UNAUTHORIZED` «Inicia sesion para continuar», `data: null`. Con token: sin errores (0 filas en ese establecimiento) | Medido |
+| R-05 | Recordatorio de una cita agendada a +3 h sin confirmar | Un `recordatorio-cita` | Apareció entre 15 y 30 s después de reservar; seguía en 1 tras 90 s y tras otros 75 s (varias pasadas del job). 1 recordatorio en total, 0 citas con más de uno | Medido |
+| R-06 | `confirmarCita` y una segunda confirmación | Idempotente | Ambas devuelven la misma `confirmadaEn` (`2026-11-19T12:25:04.731764Z`), estado `agendada` | Medido |
+| R-07 | Reservar, cancelar y reservar la misma franja (10:00) | Segunda reserva aceptada | Reservar 201; cancelar 200 (`cancelada`); `/disponibilidad` sigue sin ofrecer las 10:00; reservar de nuevo → **409 Conflict** (por GraphQL: `INTERNAL_ERROR`). **La cancelación no libera el cupo** | Medido: **defecto confirmado** |
+| R-08 | Topics y grupos de Kafka | 4 topics, lag 0 | `citas.agendada`, `citas.cancelada`, `citas.completada`, `inventario.insumo-bajo`; ningún `.DLT`; lag 0 en todas las particiones de `operaciones` (1 partición) y `relacion-cliente` (4) | Medido |
+| R-09 | Colección de Postman con newman | Ejecutar | **No se ejecutó**: newman no está instalado y no se instaló | No ejecutado |
+| R-10 | README: admin ligado al establecimiento «del simulador» | Mismo establecimiento | **No coincide**: hay dos «Establecimiento de simulacion»; el admin quedó en `a97d2ec3…` y el simulador trabaja en `425f5a0e…`. Causa no verificada (el primer POST del simulador falló por E/S y se reintentó) | Medido (discrepancia con el README) |
+
+Qué no cubre: `FORBIDDEN`, token vencido, cierre de cita → liquidación en ms-operaciones, recurrencia, y la restricción `cupo_unico` bajo concurrencia.
 
 ## 5. Cómo reproducir
 

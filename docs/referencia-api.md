@@ -37,7 +37,7 @@ Parámetros: `desde`, `hasta` (obligatorios), `page` (0), `size` (20). Sin fecha
 ### `GET /disponibilidad` → 200
 Lista (no paginada) de `{ inicio, fin }`: franjas de una hora entre 09:00 y 18:00 (offset -05:00) en las que el profesional no tiene una cita con ese inicio.
 Parámetros: `profesionalId` (UUID), `fecha` (`LocalDate`, `2026-10-15`).
-Nota: cuenta como ocupada **cualquier** cita con ese inicio, también una cancelada o completada, porque `existsByProfesionalIdAndInicio` no filtra por estado (aunque su comentario dice «activa») y la restricción `cupo_unico` tampoco. *Deducido del código; no probado en ejecución.*
+Nota: cuenta como ocupada **cualquier** cita con ese inicio, también una cancelada o completada, porque `existsByProfesionalIdAndInicio` no filtra por estado (aunque su comentario dice «activa») y la restricción `cupo_unico` tampoco. *Confirmado en ejecución el 2026-11-19 (ver `docs/evidencias/prueba-carpeta-limpia.txt`, §5.7).*
 
 ### `POST /citas/{citaId}/confirmacion` → 200
 Sin cuerpo. La clienta confirma asistencia; fija `confirmadaEn` y es idempotente (conserva la fecha de la primera confirmación). **No publica evento.**

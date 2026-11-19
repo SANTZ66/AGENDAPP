@@ -1,0 +1,522 @@
+PRUEBA DE CARPETA LIMPIA - 2026-11-19
+Entorno: Windows 11, Docker 29.8.1 (Docker Desktop), Git Bash. Todo lo de abajo es salida literal salvo donde dice "Nota".
+Proyecto de prueba: docker compose -p agendapp-prueba. No se uso down -v, volume rm, prune ni se borro nada.
+
+=== 1. git status y git log -3 (antes de empezar) ===
+git status --short -> (vacio: arbol limpio)
+17f99df Agrega manual tecnico, referencia de API y pruebas con evidencias (mvn test)
+47015db Ajusta diagramas 04a (nombres y nota de alcance) y 03b (nota de validacion)
+f481cd8 Simplifica los diagramas de login y recordatorio (3a/3b y 4a/4b)
+Nota: al empezar no habia contenedores en ejecucion (los 10 estaban "Exited (255)" desde hace 8 h); el `docker compose down` del paso 3 los elimino.
+
+=== 2. ZIP desde HEAD (git archive --format=zip --prefix=AGENDAPP/ HEAD) ===
+Archivo: "Grupo 3 AGENDAPP Entrega final.zip" (fuera del repo)
+Tamano: 1144009 bytes (1,09 MiB); 345 entradas; SHA-256 de esta primera version: 46289e9921e15ac6597f704b55c1d03ee6fd74c1089ba73e2b7cc078064da384
+Verificacion de ausencias (grep sobre unzip -l): .git/ 0 coincidencias; target/ 0; node_modules 0; override-jwt.yml 0; scripts de Chrome 0.
+Unicas coincidencias de ".git*": AGENDAPP/.gitignore, AGENDAPP/.gitattributes, frontend/.gitignore, ms-agenda/.gitignore (archivos de configuracion, no el repositorio).
+Listado completo:
+Archive:  Grupo 3 AGENDAPP Entrega final.zip
+17f99dfb141788fcd4f95442a4bf4c49372503cc
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  2026-11-19 02:00   AGENDAPP/
+     4506  2026-11-19 02:00   AGENDAPP/.env.example
+      424  2026-11-19 02:00   AGENDAPP/.gitattributes
+      554  2026-11-19 02:00   AGENDAPP/.gitignore
+    23551  2026-11-19 02:00   AGENDAPP/COMO_PROBAR.md
+    11291  2026-11-19 02:00   AGENDAPP/EVENTOS.md
+    27121  2026-11-19 02:00   AGENDAPP/README.md
+        0  2026-11-19 02:00   AGENDAPP/db-init/
+      523  2026-11-19 02:00   AGENDAPP/db-init/01-esquemas.sql
+     3655  2026-11-19 02:00   AGENDAPP/demo.sh
+     9207  2026-11-19 02:00   AGENDAPP/docker-compose.yml
+        0  2026-11-19 02:00   AGENDAPP/docs/
+        0  2026-11-19 02:00   AGENDAPP/docs/diagramas/
+     3620  2026-11-19 02:00   AGENDAPP/docs/diagramas/01-arquitectura.md
+     4854  2026-11-19 02:00   AGENDAPP/docs/diagramas/02-comunicacion.md
+     2943  2026-11-19 02:00   AGENDAPP/docs/diagramas/03-login.md
+     3279  2026-11-19 02:00   AGENDAPP/docs/diagramas/04-recordatorio.md
+        0  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/
+     1713  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/01-arquitectura.mmd
+     1024  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/02a-comunicacion-rest.mmd
+      706  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/02b-comunicacion-kafka.mmd
+      379  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/03a-login.mmd
+      328  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/03b-usar-token.mmd
+      506  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/04a-recordatorio.mmd
+      268  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/04b-confirmacion.mmd
+      170  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/mermaid-config.json
+       64  2026-11-19 02:00   AGENDAPP/docs/diagramas/fuente/puppeteer.json
+        0  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/
+    73773  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/01-arquitectura.png
+   200626  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/02a-comunicacion-rest.png
+   144935  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/02b-comunicacion-kafka.png
+    84068  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/03a-login.png
+    82599  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/03b-usar-token.png
+   125676  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/04a-recordatorio.png
+    60331  2026-11-19 02:00   AGENDAPP/docs/diagramas/img/04b-confirmacion.png
+        0  2026-11-19 02:00   AGENDAPP/docs/evidencias/
+     2203  2026-11-19 02:00   AGENDAPP/docs/evidencias/gateway-graphql-mvn-test.txt
+   243421  2026-11-19 02:00   AGENDAPP/docs/evidencias/ms-agenda-mvn-test.txt
+   208873  2026-11-19 02:00   AGENDAPP/docs/evidencias/ms-operaciones-mvn-test.txt
+     8617  2026-11-19 02:00   AGENDAPP/docs/evidencias/ms-relacion-cliente-mvn-test.txt
+    20984  2026-11-19 02:00   AGENDAPP/docs/manual-tecnico.md
+    14677  2026-11-19 02:00   AGENDAPP/docs/pruebas-y-evidencias.md
+    14418  2026-11-19 02:00   AGENDAPP/docs/referencia-api.md
+        0  2026-11-19 02:00   AGENDAPP/frontend/
+       35  2026-11-19 02:00   AGENDAPP/frontend/.dockerignore
+       34  2026-11-19 02:00   AGENDAPP/frontend/.gitignore
+      457  2026-11-19 02:00   AGENDAPP/frontend/Dockerfile
+     1202  2026-11-19 02:00   AGENDAPP/frontend/index.html
+      811  2026-11-19 02:00   AGENDAPP/frontend/nginx.conf
+    59842  2026-11-19 02:00   AGENDAPP/frontend/package-lock.json
+      400  2026-11-19 02:00   AGENDAPP/frontend/package.json
+        0  2026-11-19 02:00   AGENDAPP/frontend/public/
+        0  2026-11-19 02:00   AGENDAPP/frontend/public/fuentes/
+    36620  2026-11-19 02:00   AGENDAPP/frontend/public/fuentes/fraunces.woff2
+    27348  2026-11-19 02:00   AGENDAPP/frontend/public/fuentes/jakarta.woff2
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/
+     4547  2026-11-19 02:00   AGENDAPP/frontend/src/App.jsx
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/api/
+      923  2026-11-19 02:00   AGENDAPP/frontend/src/api/canal.js
+     5031  2026-11-19 02:00   AGENDAPP/frontend/src/api/consultas.js
+     3642  2026-11-19 02:00   AGENDAPP/frontend/src/api/fechas.js
+     6364  2026-11-19 02:00   AGENDAPP/frontend/src/api/graphql.js
+     1744  2026-11-19 02:00   AGENDAPP/frontend/src/api/identidad.js
+     2878  2026-11-19 02:00   AGENDAPP/frontend/src/api/mensajes.js
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/componentes/
+     2324  2026-11-19 02:00   AGENDAPP/frontend/src/componentes/Iconos.jsx
+     3575  2026-11-19 02:00   AGENDAPP/frontend/src/componentes/Lateral.jsx
+     4746  2026-11-19 02:00   AGENDAPP/frontend/src/componentes/Panel.jsx
+     4427  2026-11-19 02:00   AGENDAPP/frontend/src/componentes/Piezas.jsx
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/contexto/
+     2835  2026-11-19 02:00   AGENDAPP/frontend/src/contexto/Establecimiento.jsx
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/estado/
+     1290  2026-11-19 02:00   AGENDAPP/frontend/src/estado/conexion.js
+     5095  2026-11-19 02:00   AGENDAPP/frontend/src/estado/sesion.js
+    28640  2026-11-19 02:00   AGENDAPP/frontend/src/estilos.css
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/
+     2570  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/useAvisos.jsx
+      562  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/useConexion.js
+     5567  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/useConsulta.js
+     2960  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/useEnVivo.jsx
+      757  2026-11-19 02:00   AGENDAPP/frontend/src/ganchos/useSesion.js
+      619  2026-11-19 02:00   AGENDAPP/frontend/src/main.jsx
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/
+     8782  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Agenda.jsx
+     5160  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Clientas.jsx
+     8659  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Hoy.jsx
+     3144  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Login.jsx
+     4855  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Operacion.jsx
+     2337  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Portada.jsx
+     7778  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/Reservar.jsx
+     1493  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/VersionCliente.jsx
+     1037  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/VersionNegocio.jsx
+        0  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/cliente/
+     5735  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/cliente/MisCitas.jsx
+    11958  2026-11-19 02:00   AGENDAPP/frontend/src/paginas/cliente/ReservarCliente.jsx
+    11232  2026-11-19 02:00   AGENDAPP/frontend/src/roles.css
+      739  2026-11-19 02:00   AGENDAPP/frontend/vite.config.js
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/
+       22  2026-11-19 02:00   AGENDAPP/gateway-graphql/.dockerignore
+      372  2026-11-19 02:00   AGENDAPP/gateway-graphql/Dockerfile
+     2443  2026-11-19 02:00   AGENDAPP/gateway-graphql/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/
+      351  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/GatewayGraphqlApplication.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/api/
+     2571  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/api/AutenticacionController.java
+    11561  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/api/ConsultasController.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/clientes/
+     1287  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/clientes/ServiciosInternos.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/config/
+     1682  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/config/ConfiguracionWeb.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/modelo/
+     2637  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/modelo/Modelos.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/
+     3545  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/EmisorJwt.java
+     1132  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/Exigir.java
+     2456  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/InterceptorSesion.java
+     1563  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/ManejadorErroresGraphql.java
+      273  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/NoAutenticadoException.java
+      317  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/Sesion.java
+      258  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/SinPermisoException.java
+      524  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/java/com/fet/citas/gateway/seguridad/TokenInvalidoException.java
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/
+      869  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/application.properties
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/graphql/
+     3607  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/graphql/schema.graphqls
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/static/
+    13865  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/main/resources/static/index.html
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/fet/citas/gateway/
+        0  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/fet/citas/gateway/seguridad/
+     4071  2026-11-19 02:00   AGENDAPP/gateway-graphql/src/test/java/com/fet/citas/gateway/seguridad/EmisorJwtTest.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/
+       31  2026-11-19 02:00   AGENDAPP/ms-agenda/.dockerignore
+       50  2026-11-19 02:00   AGENDAPP/ms-agenda/.gitignore
+      587  2026-11-19 02:00   AGENDAPP/ms-agenda/Dockerfile
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/openapi/
+     9143  2026-11-19 02:00   AGENDAPP/ms-agenda/openapi/ms-agenda.yaml
+     3759  2026-11-19 02:00   AGENDAPP/ms-agenda/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/
+      590  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/MsAgendaApplication.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/api/
+     4526  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/api/CitaController.java
+     1357  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/api/DisponibilidadController.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dominio/
+     4563  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dominio/Cita.java
+     6753  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dominio/CitaService.java
+      288  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dominio/EstadoCita.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/
+      464  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/CancelarCitaRequest.java
+      461  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/CerrarCitaRequest.java
+     1357  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/CitaResponse.java
+      200  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/FranjaDisponible.java
+     1051  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/dto/ReservarCitaRequest.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/
+      311  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/CitaNoEncontradaException.java
+      268  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/CupoOcupadoException.java
+      890  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/ErrorResponse.java
+      310  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/EstadoInvalidoException.java
+     3116  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/error/ManejadorErrores.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/eventos/
+     1608  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/eventos/EventoCita.java
+      789  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/eventos/HechoDeCita.java
+     2372  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/eventos/PublicadorKafka.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/persistencia/
+     1734  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/java/com/fet/citas/agenda/persistencia/CitaRepository.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/resources/
+     1647  2026-11-19 02:00   AGENDAPP/ms-agenda/src/main/resources/application.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/fet/citas/agenda/
+    14385  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/fet/citas/agenda/CitaControllerTest.java
+     6428  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/java/com/fet/citas/agenda/PublicacionEventosTest.java
+        0  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/resources/
+      636  2026-11-19 02:00   AGENDAPP/ms-agenda/src/test/resources/application-test.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/
+       22  2026-11-19 02:00   AGENDAPP/ms-establecimientos/.dockerignore
+      376  2026-11-19 02:00   AGENDAPP/ms-establecimientos/Dockerfile
+     2533  2026-11-19 02:00   AGENDAPP/ms-establecimientos/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/
+      368  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/MsEstablecimientosApplication.java
+     2899  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/SembradoUsuarios.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/api/
+     2220  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/api/AuthController.java
+     3644  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/api/EstablecimientoController.java
+     3632  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/api/ServicioController.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/config/
+      708  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/config/SeguridadConfig.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/
+     1536  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/Establecimiento.java
+     1051  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/Profesional.java
+     1872  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/Servicio.java
+     1323  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/ServicioInsumo.java
+     1984  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dominio/Usuario.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dto/
+     1896  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dto/Peticiones.java
+     2336  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/dto/Respuestas.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/error/
+      755  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/error/ErrorResponse.java
+     1357  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/error/ManejadorErrores.java
+      228  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/error/NoEncontradoException.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/
+      305  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/EstablecimientoRepository.java
+      389  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/ProfesionalRepository.java
+      387  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/ServicioInsumoRepository.java
+      377  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/ServicioRepository.java
+      363  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/java/com/fet/citas/establecimientos/persistencia/UsuarioRepository.java
+        0  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/resources/
+     1211  2026-11-19 02:00   AGENDAPP/ms-establecimientos/src/main/resources/application.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/
+       22  2026-11-19 02:00   AGENDAPP/ms-operaciones/.dockerignore
+      371  2026-11-19 02:00   AGENDAPP/ms-operaciones/Dockerfile
+     3233  2026-11-19 02:00   AGENDAPP/ms-operaciones/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/
+      353  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/MsOperacionesApplication.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/api/
+     2501  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/api/FinanzasController.java
+     3616  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/api/InventarioController.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/clientes/
+     1682  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/clientes/CatalogoClient.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/config/
+     2916  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/config/ManejoDeErroresKafka.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/dominio/
+     2096  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/dominio/Insumo.java
+     2372  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/dominio/Liquidacion.java
+     1280  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/dominio/MovimientoInsumo.java
+     5747  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/dominio/OperacionesService.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/error/
+     1266  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/error/ManejadorErrores.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/eventos/
+     2358  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/eventos/EscuchaCitas.java
+      887  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/eventos/EventoCita.java
+      587  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/eventos/EventoInsumoBajo.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/persistencia/
+      667  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/persistencia/InsumoRepository.java
+      617  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/persistencia/LiquidacionRepository.java
+      340  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/java/com/fet/citas/operaciones/persistencia/MovimientoInsumoRepository.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/resources/
+     1533  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/main/resources/application.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/com/fet/citas/operaciones/
+     6561  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/java/com/fet/citas/operaciones/FlujoEventosTest.java
+        0  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/resources/
+     1191  2026-11-19 02:00   AGENDAPP/ms-operaciones/src/test/resources/application-test.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/
+       22  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/.dockerignore
+      376  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/Dockerfile
+     2368  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/
+      358  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/MsRelacionClienteApplication.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/api/
+     3238  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/api/RelacionController.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/clientes/
+     3558  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/clientes/AgendaClient.java
+     1827  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/clientes/EstablecimientosClient.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/config/
+     2913  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/config/ManejoDeErroresKafka.java
+      568  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/config/Planificador.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/dominio/
+     2437  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/dominio/ClienteRecurrencia.java
+     5424  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/dominio/GeneradorRecordatorios.java
+     2425  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/dominio/Notificacion.java
+     7021  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/dominio/RelacionService.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/eventos/
+     3077  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/eventos/EscuchaEventos.java
+      667  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/eventos/EventoCita.java
+      430  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/eventos/EventoInsumoBajo.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/persistencia/
+      891  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/persistencia/ClienteRecurrenciaRepository.java
+      534  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/java/com/fet/citas/relacion/persistencia/NotificacionRepository.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/resources/
+     2453  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/main/resources/application.properties
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/relacion/
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/relacion/clientes/
+     8127  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/relacion/clientes/ClientesRestTest.java
+        0  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/relacion/dominio/
+    12066  2026-11-19 02:00   AGENDAPP/ms-relacion-cliente/src/test/java/com/fet/citas/relacion/dominio/GeneradorRecordatoriosTest.java
+        0  2026-11-19 02:00   AGENDAPP/postman/
+    87594  2026-11-19 02:00   AGENDAPP/postman/Plataforma-de-citas.postman_collection.json
+        0  2026-11-19 02:00   AGENDAPP/simulador/
+       22  2026-11-19 02:00   AGENDAPP/simulador/.dockerignore
+      366  2026-11-19 02:00   AGENDAPP/simulador/Dockerfile
+     1682  2026-11-19 02:00   AGENDAPP/simulador/pom.xml
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/
+      376  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/ConfiguracionSimulador.java
+     1111  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/Escenario.java
+     1343  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/EstadoController.java
+     4766  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/GeneradorDeCitas.java
+     4534  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/SemillaDatos.java
+     1006  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/SimuladorApplication.java
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/clientes/
+      935  2026-11-19 02:00   AGENDAPP/simulador/src/main/java/com/fet/citas/simulador/clientes/ApiClient.java
+        0  2026-11-19 02:00   AGENDAPP/simulador/src/main/resources/
+      686  2026-11-19 02:00   AGENDAPP/simulador/src/main/resources/application.properties
+---------                     -------
+  2042890                     345 files
+
+=== 3. docker compose down (raiz del repo, sin -v) ===
+Elimino los 10 contenedores y la red plataforma-citas_default. Los volumenes se conservaron (docker volume ls: plataforma-citas_agenda-data sigue existiendo).
+
+=== 4. Extraccion y arranque siguiendo solo el README ===
+Comando ejecutado en la carpeta extraida: docker compose -p agendapp-prueba up --build -d
+Inicio: 2026-11-19T07:11:35-05:00. El comando volvio a los 425 s (construccion de 6 imagenes Maven/Node incluida; la primera vez descarga dependencias).
+Servicios Spring "Started ... in": gateway 12,8 s; simulador 11,0 s; ms-agenda 18,1 s; ms-establecimientos 19,2 s; ms-operaciones 20,4 s; ms-relacion-cliente 20,7 s. Escenario del simulador listo a las 12:19:05Z (7 min 30 s tras el inicio, ~7 min de ellos construyendo imagenes).
+Estado de los contenedores justo antes de apagar:
+NAME                  IMAGE                                 COMMAND                  SERVICE               CREATED          STATUS                    PORTS
+agenda-kafka          apache/kafka:3.9.0                    "/__cacert_entrypoin…"   kafka                 11 minutes ago   Up 11 minutes (healthy)   0.0.0.0:9092->9092/tcp, [::]:9092->9092/tcp
+agenda-kafka-ui       provectuslabs/kafka-ui:latest         "/bin/sh -c 'java --…"   kafka-ui              11 minutes ago   Up 11 minutes             0.0.0.0:8090->8080/tcp, [::]:8090->8080/tcp
+agenda-postgres       postgres:16                           "docker-entrypoint.s…"   postgres              11 minutes ago   Up 11 minutes (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+frontend              agendapp-prueba-frontend              "/docker-entrypoint.…"   frontend              11 minutes ago   Up 11 minutes             0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+gateway-graphql       agendapp-prueba-gateway-graphql       "java -jar app.jar"      gateway-graphql       11 minutes ago   Up 11 minutes             0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+ms-agenda             agendapp-prueba-ms-agenda             "java -jar app.jar"      ms-agenda             11 minutes ago   Up 11 minutes             0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+ms-establecimientos   agendapp-prueba-ms-establecimientos   "java -jar app.jar"      ms-establecimientos   11 minutes ago   Up 11 minutes             0.0.0.0:8081->8081/tcp, [::]:8081->8081/tcp
+ms-operaciones        agendapp-prueba-ms-operaciones        "java -jar app.jar"      ms-operaciones        11 minutes ago   Up 11 minutes             0.0.0.0:8082->8082/tcp, [::]:8082->8082/tcp
+ms-relacion-cliente   agendapp-prueba-ms-relacion-cliente   "java -jar app.jar"      ms-relacion-cliente   11 minutes ago   Up 11 minutes             0.0.0.0:8083->8083/tcp, [::]:8083->8083/tcp
+simulador             agendapp-prueba-simulador             "java -jar app.jar"      simulador             11 minutes ago   Up 11 minutes             0.0.0.0:8084->8084/tcp, [::]:8084->8084/tcp
+
+--- Pasos del README que fallan, faltan o estan mal ordenados ---
+Ningun paso impidio levantar el sistema. Observaciones:
+ a) README manda "docker compose down -v" la primera vez. No se ejecuto (prohibido en esta prueba). En un proyecto nuevo (-p) el volumen nace vacio, asi que no hizo falta. En una carpeta con datos, ese paso los borraria: el README no lo advierte mas que con "IMPORTANTE".
+ b) container_name y puertos son fijos en docker-compose.yml: el proyecto -p agendapp-prueba NO puede convivir con la app original (puertos 3000/5432/8080-8084/8090/9092 y nombres agenda-postgres, etc.). Hubo que apagar la original antes, como pedia el orden. El README no lo dice.
+ c) El README dice "No hace falta instalar Java ni Maven" y mas abajo la seccion Pruebas manda "cd ms-agenda && mvn test". Es coherente solo si se lee la primera frase como "para ejecutar"; no esta aclarado. Ademas la seccion solo nombra ms-agenda y ms-operaciones (hay tests tambien en ms-relacion-cliente y gateway-graphql).
+ d) README: el usuario admin@demo.com queda "ligado al establecimiento mas antiguo (el del simulador)". Medido: NO coincide. Hay dos "Establecimiento de simulacion" (a97d2ec3-1bf0-4a42-b20c-b68839968804 y 425f5a0e-61b7-4a0d-96e4-ab088ef90314). El simulador trabaja con 425f5a0e (/estado) y el admin quedo ligado a a97d2ec3, que no tiene actividad del simulador (notificaciones = 0 filas al iniciar sesion).
+    Causa probable, NO verificada: en el log del simulador el primer POST a ms-establecimientos fallo ("I/O error ... null", intento 1/30) y el reintento creo otro establecimiento; la primera peticion pudo haberse completado en el servidor.
+ e) README: la lista de topics en Kafka UI nombra 3 de los 4 (falta citas.cancelada). Menor.
+ f) /swagger-ui.html responde 302 (redireccion) y luego 200; el README lo da como URL directa. Funciona en navegador.
+ g) El README no indica cuanto tarda; medido arriba. Dice "listo cuando cada servicio imprime Started": cierto (todos lo imprimieron).
+
+=== 5. Mediciones contra el sistema levantado ===
+--- 5.1 HTTP (curl -L) ---
+## HTTP (-L sigue redirecciones)
+http://localhost:3000/ -> 200
+http://localhost:8080/swagger-ui.html -> 200
+http://localhost:8081/swagger-ui.html -> 200
+http://localhost:8082/swagger-ui.html -> 200
+http://localhost:8083/swagger-ui.html -> 200
+http://localhost:8080/v3/api-docs -> 200
+http://localhost:8081/v3/api-docs -> 200
+http://localhost:8082/v3/api-docs -> 200
+http://localhost:8083/v3/api-docs -> 200
+http://localhost:8000/graphiql -> 200
+http://localhost:8084/estado -> 200
+http://localhost:8090/ -> 200
+<title>AGENDAPP
+{"profesionalId":"5712ab66-3459-4289-9d34-bbe97846a2e7","citasGeneradas":40,"servicioId":"49f07adf-a33d-4726-bd6c-549ebf22d17d","escenarioListo":true,"establecimientoId":"425f5a0e-61b7-4a0d-96e4-ab088ef90314","activo":true}
+
+Nota: el comando de Kafka de esa corrida fallo por conversion de rutas de Git Bash; se repitio con MSYS_NO_PATHCONV=1 (5.4). Los 'OCI runtime exec failed' no se incluyen.
+
+--- 5.2 a 5.6 API GraphQL/REST (script Node con fetch; 'token' recortado) ---
+## LOGIN
+login correcto: HTTP 200 {"data":{"login":{"token":"eyJhbGciOiJI...(recortado)","expiraEn":"2026-11-19T20:25:04Z","establecimientoId":"a97d2ec3-1bf0-4a42-b20c-b68839968804"}}}
+login clave incorrecta: HTTP 200 {"errors":[{"message":"Correo o clave incorrectos","locations":[{"line":1,"column":10}],"path":["login"],"extensions":{"classification":"UNAUTHORIZED"}}],"data":{"login":null}}
+## CONSULTA PROTEGIDA (notificaciones)
+sin token: HTTP 200 {"errors":[{"message":"Inicia sesion para continuar","locations":[{"line":1,"column":7}],"path":["notificaciones"],"extensions":{"classification":"UNAUTHORIZED"}}],"data":null}
+con token: HTTP 200 errors= null filas= 0
+## PREPARACION
+establecimiento a97d2ec3-1bf0-4a42-b20c-b68839968804 profesional 11fec16c-3404-4b68-a139-4a8660315464 servicio 1ce40f52-2743-43ab-b1fd-833a1a991b5d
+## CONFIRMAR E IDEMPOTENCIA
+reservar: HTTP 200 {"data":{"reservarCita":{"id":"b60a2d64-d5d1-41b8-8a3a-1a6f57f19ae2","estado":"agendada","confirmadaEn":null}}}
+confirmar 1: HTTP 200 {"data":{"confirmarCita":{"id":"b60a2d64-d5d1-41b8-8a3a-1a6f57f19ae2","estado":"agendada","confirmadaEn":"2026-11-19T12:25:04.731764Z"}}}
+confirmar 2: HTTP 200 {"data":{"confirmarCita":{"id":"b60a2d64-d5d1-41b8-8a3a-1a6f57f19ae2","estado":"agendada","confirmadaEn":"2026-11-19T12:25:04.731764Z"}}}
+idempotente (misma confirmadaEn): true
+## RESERVAR -> CANCELAR -> RESERVAR
+reserva 1: HTTP 200 {"data":{"reservarCita":{"id":"569b317b-9beb-4454-8563-eac034216ce9","estado":"agendada","confirmadaEn":null}}}
+cancelar: HTTP 200 {"data":{"cancelarCita":{"id":"569b317b-9beb-4454-8563-eac034216ce9","estado":"cancelada"}}}
+disponibilidad del dia ( 2027-12-25 ) HTTP 200 franjas= 9 ; incluye el horario cancelado 2027-12-25T07:00:00-05:00 = false
+reserva 2 (mismo horario tras cancelar): HTTP 200 {"errors":[{"message":"INTERNAL_ERROR for 17a04ae3-47b3-ecf4-1555-f467a63dc1b0","locations":[{"line":1,"column":10}],"path":["reservarCita"],"extensions":{"classification":"INTERNAL_ERROR"}}],"data":{"reservarCita":null}}
+## RECORDATORIO
+reserva dentro de ventana (inicio 2026-11-19T10:25:06-05:00 ): HTTP 200 {"data":{"reservarCita":{"id":"166544ae-5c9b-4311-8971-dc23e8bab5fb","estado":"agendada","confirmadaEn":null}}}
+t+15s recordatorios de la cita: 0
+t+30s recordatorios de la cita: 1
+t+45s recordatorios de la cita: 1
+t+60s recordatorios de la cita: 1
+t+75s recordatorios de la cita: 1
+t+90s recordatorios de la cita: 1
+t+extra 75s (otra pasada del job) recordatorios: 1
+recordatorios totales: 1 ; citas con >1 recordatorio: 0
+
+Nota sobre 5.x "reservar -> cancelar -> reservar" de arriba: ese primer intento uso la franja de las 07:00 (hora Colombia), que queda FUERA de las franjas 09:00-18:00 que lista /disponibilidad, asi que su linea "incluye el horario cancelado = false" NO es valida como evidencia. La prueba valida es la siguiente (franja 10:00, REST directo contra ms-agenda). La segunda reserva del primer intento SI fallo, igual que en la valida.
+
+--- 5.7 Reservar -> cancelar -> volver a reservar el mismo horario (ms-agenda, REST) ---
+disponibilidad inicial: HTTP 200, 9 franjas, 10:00 libre=true
+reservar 10:00 -> HTTP 201 {"id":"e69d7f06-3a02-458b-8436-08a2f64310c9","establecimientoId":"a97d2ec3-1bf0-4a42-b20c-b68839968804","profesionalId":"73536024-37c6-424b-a988-b2f0c454648a","servicioId":"af1f3133-4ab4-40c9-b052-6e26dcb01584","clienteId":"00000000-0000-0000-0000-0000000000bb","inicio":"2027-06-15T15:00:00Z","fin":"2027-06-15T16:00:00Z","estado":"agendada","valorCobrado":null,"confirmadaEn":null}
+disponibilidad tras reservar: HTTP 200, 8 franjas, 10:00 libre=false
+cancelar -> HTTP 200 {"id":"e69d7f06-3a02-458b-8436-08a2f64310c9","establecimientoId":"a97d2ec3-1bf0-4a42-b20c-b68839968804","profesionalId":"73536024-37c6-424b-a988-b2f0c454648a","servicioId":"af1f3133-4ab4-40c9-b052-6e26dcb01584","clienteId":"00000000-0000-0000-0000-0000000000bb","inicio":"2027-06-15T15:00:00Z","fin":"2027-06-15T16:00:00Z","estado":"cancelada","valorCobrado":null,"confirmadaEn":null}
+disponibilidad tras cancelar: HTTP 200, 8 franjas, 10:00 libre=false
+volver a reservar el mismo horario (REST ms-agenda) -> HTTP 409 {"timestamp":"2026-11-19T12:28:13.21450329Z","status":409,"error":"Conflict","mensaje":"El profesional ya tiene una cita a las 2027-06-15T15:00Z","detalles":null}
+RESULTADO: la cancelacion NO libera el cupo. Tras cancelar, /disponibilidad sigue sin ofrecer las 10:00 y reservar de nuevo ese horario devuelve 409 Conflict. Confirma lo deducido del codigo (restriccion cupo_unico sin filtro por estado). No se modifico codigo.
+Por GraphQL el mismo fallo sale como INTERNAL_ERROR (primer intento arriba), como documenta el README.
+
+--- 5.8 Kafka (docker exec agenda-kafka kafka-topics.sh / kafka-consumer-groups.sh) ---
+## KAFKA topics
+__consumer_offsets
+citas.agendada
+citas.cancelada
+citas.completada
+inventario.insumo-bajo
+
+## KAFKA grupos
+relacion-cliente
+operaciones
+
+## lag grupo operaciones
+
+GROUP           TOPIC            PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                 HOST            CLIENT-ID
+operaciones     citas.completada 0          24              24              0               consumer-operaciones-1-fdcddd44-c561-4ded-aab6-679f73bd5047 /172.19.0.7     consumer-operaciones-1
+## lag grupo relacion-cliente
+
+GROUP            TOPIC                  PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                      HOST            CLIENT-ID
+relacion-cliente inventario.insumo-bajo 0          20              20              0               consumer-relacion-cliente-3-0d01c7ff-426b-4a18-b202-2167227d538e /172.19.0.6     consumer-relacion-cliente-3
+relacion-cliente citas.cancelada        0          12              12              0               consumer-relacion-cliente-1-8367e2e4-c630-418b-bbeb-eb156b21d592 /172.19.0.6     consumer-relacion-cliente-1
+relacion-cliente citas.agendada         0          45              45              0               consumer-relacion-cliente-4-1291f87a-66cf-4a41-9e55-4189078bf56d /172.19.0.6     consumer-relacion-cliente-4
+relacion-cliente citas.completada       0          24              24              0               consumer-relacion-cliente-2-dfc527e0-95c2-4695-b4da-86aca1c489a4 /172.19.0.6     consumer-relacion-cliente-2
+## establecimientos
+[{"id":"a97d2ec3-1bf0-4a42-b20c-b68839968804","nombre":"Establecimiento de simulacion","telefono":"3000000000","ventanaConfirmacionHoras":24},{"id":"425f5a0e-61b7-4a0d-96e4-ab088ef90314","nombre":"Establecimiento de simulacion","telefono":"3000000000","ventanaConfirmacionHoras":24}]
+Resultado: los 4 topics existen; ningun topic .DLT; LAG = 0 en todas las particiones de ambos grupos.
+
+--- 5.9 Newman ---
+NO SE EJECUTO. newman no esta instalado (which newman: no encontrado; npx --no-install newman: falla). No se instalo para no modificar el equipo. La coleccion postman/Plataforma-de-citas.postman_collection.json no se corrio; las comprobaciones de arriba son un script propio, no la coleccion.
+
+=== 6. Apagado de la prueba (docker compose -p agendapp-prueba down, sin -v) ===
+ Container ms-operaciones Removed 
+ Container agenda-postgres Stopping 
+ Container agenda-kafka-ui Stopped 
+ Container agenda-kafka-ui Removing 
+ Container agenda-kafka-ui Removed 
+ Container agenda-kafka Stopping 
+ Container agenda-postgres Stopped 
+ Container agenda-postgres Removing 
+ Container agenda-postgres Removed 
+ Container agenda-kafka Stopped 
+ Container agenda-kafka Removing 
+ Container agenda-kafka Removed 
+ Network agendapp-prueba_default Removing 
+ Network agendapp-prueba_default Removed 
+Despues: 0 contenedores; los volumenes siguen existiendo (4 volumenes *agenda-data, incluido el de la prueba).
+
+=== 7. Original: docker compose up -d en la raiz del repo ===
+Sin --build (reutilizo las imagenes ya construidas). Volvio en 12 s; :3000 respondio 200 a los pocos segundos.
+agenda-kafka Up 37 seconds (healthy)
+agenda-kafka-ui Up 29 seconds
+agenda-postgres Up 37 seconds (healthy)
+frontend Up 27 seconds
+gateway-graphql Up 28 seconds
+ms-agenda Up 29 seconds
+ms-establecimientos Up 31 seconds
+ms-operaciones Up 30 seconds
+ms-relacion-cliente Up 29 seconds
+simulador Up 28 seconds
+POST localhost:8000/graphql {establecimientos{id}} -> 200
