@@ -1,36 +1,56 @@
-flowchart TB
+flowchart LR
   nav["Navegador"]
   subgraph dc["Docker Compose - volumen agenda-data"]
-    fe["frontend<br/>nginx :3000<br/>React compilado"]
+    direction LR
+    fe["frontend<br/>nginx :3000"]
     gw["gateway-graphql<br/>:8000"]
-    est["ms-establecimientos<br/>:8081"]
-    ag["ms-agenda<br/>:8080"]
-    op["ms-operaciones<br/>:8082"]
-    rc["ms-relacion-cliente<br/>:8083"]
     sim["simulador<br/>:8084"]
-    kafka[("Kafka 3.9.0 KRaft<br/>agenda-kafka<br/>:9092 equipo / :29092 interno")]
-    kui["kafka-ui<br/>:8090 -> 8080"]
+    subgraph java["Microservicios Java"]
+      direction TB
+      est["ms-establecimientos<br/>:8081"]
+      ag["ms-agenda<br/>:8080"]
+      op["ms-operaciones<br/>:8082"]
+      rc["ms-relacion-cliente<br/>:8083"]
+    end
+    kafka("Kafka 3.9.0 KRaft - agenda-kafka<br/>:9092 equipo / :29092 interno")
+    kui["kafka-ui<br/>:8090 a 8080"]
     subgraph pg["agenda-postgres :5432 - base citas"]
-      s1[("esquema establecimientos")]
-      s2[("esquema agenda")]
-      s3[("esquema operaciones")]
-      s4[("esquema relacion_cliente")]
+      direction TB
+      s1[("establecimientos")]
+      s2[("agenda")]
+      s3[("operaciones")]
+      s4[("relacion_cliente")]
     end
   end
   nav -->|"HTTP :3000"| fe
-  fe -->|"nginx: /graphql"| gw
+  fe -->|"/graphql"| gw
   gw --> est
   gw --> ag
   gw --> op
   gw --> rc
-  est --- s1
-  ag --- s2
-  op --- s3
-  rc --- s4
-  ag --- kafka
-  op --- kafka
-  rc --- kafka
-  kui --> kafka
   sim --> est
   sim --> ag
   sim --> op
+  ag ==> kafka
+  op ==> kafka
+  rc ==> kafka
+  kui ==> kafka
+  est -.-> s1
+  ag -.-> s2
+  op -.-> s3
+  rc -.-> s4
+  subgraph leyenda["Leyenda"]
+    direction LR
+    l1["A"] -->|"REST / HTTP"| l2["B"]
+    l3["A"] ==>|"Kafka"| l4["B"]
+    l5["A"] -.->|"Base de datos"| l6["B"]
+  end
+  style kafka fill:#fff3cd,stroke:#b8860b,stroke-width:2px
+  style kui fill:#fff3cd,stroke:#b8860b
+  style java fill:#eef6ff,stroke:#4a78b5
+  linkStyle 0,1,2,3,4,5,6,7,8 stroke:#1f4e8c,stroke-width:2px
+  linkStyle 9,10,11,12 stroke:#d97706,stroke-width:4px
+  linkStyle 13,14,15,16 stroke:#15803d,stroke-width:2px,stroke-dasharray:4 4
+  linkStyle 17 stroke:#1f4e8c,stroke-width:2px
+  linkStyle 18 stroke:#d97706,stroke-width:4px
+  linkStyle 19 stroke:#15803d,stroke-width:2px,stroke-dasharray:4 4

@@ -1,19 +1,19 @@
 flowchart LR
-  subgraph g["gateway-graphql llama a"]
-    g0["gateway-graphql"] --> g1["ms-establecimientos"]
-    g0 --> g2["ms-agenda"]
-    g0 --> g3["ms-operaciones"]
-    g0 --> g4["ms-relacion-cliente"]
-  end
-  subgraph s["simulador llama a"]
-    s0["simulador"] --> s1["ms-establecimientos"]
-    s0 --> s2["ms-agenda"]
-    s0 --> s3["ms-operaciones"]
-  end
-  subgraph o["ms-operaciones llama a"]
-    o0["ms-operaciones"] -->|"GET /servicios/{id}/insumos"| o1["ms-establecimientos"]
-  end
-  subgraph r["ms-relacion-cliente llama a"]
-    r0["ms-relacion-cliente"] -->|"GET /citas/proximas"| r1["ms-agenda"]
-    r0 -->|"GET /establecimientos"| r2["ms-establecimientos"]
-  end
+  gw["gateway-graphql"]
+  sim["simulador"]
+  op["ms-operaciones"]
+  rc["ms-relacion-cliente"]
+  est["ms-establecimientos"]
+  ag["ms-agenda"]
+  opd["ms-operaciones"]
+  rcd["ms-relacion-cliente"]
+  gw -->|"GET /establecimientos<br/>GET /establecimientos/{id}/profesionales<br/>GET /servicios, GET /servicios/{id}<br/>POST /auth/verificar"| est
+  gw -->|"GET /citas, GET /disponibilidad<br/>POST /citas<br/>POST /citas/{id}/confirmacion<br/>POST /citas/{id}/cierre<br/>POST /citas/{id}/cancelacion"| ag
+  gw -->|"GET /inventario<br/>GET /resumen"| opd
+  gw -->|"GET /notificaciones<br/>GET /clientes-inactivos"| rcd
+  sim -->|"POST /establecimientos<br/>POST /establecimientos/{id}/profesionales<br/>POST /servicios<br/>POST /servicios/{id}/insumos"| est
+  sim -->|"POST /citas<br/>POST /citas/{id}/cierre<br/>POST /citas/{id}/cancelacion"| ag
+  sim -->|"POST /inventario"| opd
+  op -->|"GET /servicios/{id}/insumos"| est
+  rc -->|"GET /establecimientos"| est
+  rc -->|"GET /citas/proximas"| ag

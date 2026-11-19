@@ -4,27 +4,42 @@
 
 ```mermaid
 flowchart LR
-  subgraph g["gateway-graphql llama a"]
-    g0["gateway-graphql"] --> g1["ms-establecimientos"]
-    g0 --> g2["ms-agenda"]
-    g0 --> g3["ms-operaciones"]
-    g0 --> g4["ms-relacion-cliente"]
-  end
-  subgraph s["simulador llama a"]
-    s0["simulador"] --> s1["ms-establecimientos"]
-    s0 --> s2["ms-agenda"]
-    s0 --> s3["ms-operaciones"]
-  end
-  subgraph o["ms-operaciones llama a"]
-    o0["ms-operaciones"] -->|"GET /servicios/{id}/insumos"| o1["ms-establecimientos"]
-  end
-  subgraph r["ms-relacion-cliente llama a"]
-    r0["ms-relacion-cliente"] -->|"GET /citas/proximas"| r1["ms-agenda"]
-    r0 -->|"GET /establecimientos"| r2["ms-establecimientos"]
-  end
+  gw["gateway-graphql"]
+  sim["simulador"]
+  op["ms-operaciones"]
+  rc["ms-relacion-cliente"]
+  est["ms-establecimientos"]
+  ag["ms-agenda"]
+  opd["ms-operaciones"]
+  rcd["ms-relacion-cliente"]
+  gw -->|"GET /establecimientos<br/>GET /establecimientos/{id}/profesionales<br/>GET /servicios, GET /servicios/{id}<br/>POST /auth/verificar"| est
+  gw -->|"GET /citas, GET /disponibilidad<br/>POST /citas<br/>POST /citas/{id}/confirmacion<br/>POST /citas/{id}/cierre<br/>POST /citas/{id}/cancelacion"| ag
+  gw -->|"GET /inventario<br/>GET /resumen"| opd
+  gw -->|"GET /notificaciones<br/>GET /clientes-inactivos"| rcd
+  sim -->|"POST /establecimientos<br/>POST /establecimientos/{id}/profesionales<br/>POST /servicios<br/>POST /servicios/{id}/insumos"| est
+  sim -->|"POST /citas<br/>POST /citas/{id}/cierre<br/>POST /citas/{id}/cancelacion"| ag
+  sim -->|"POST /inventario"| opd
+  op -->|"GET /servicios/{id}/insumos"| est
+  rc -->|"GET /establecimientos"| est
+  rc -->|"GET /citas/proximas"| ag
 ```
 
 ![REST](img/02a-comunicacion-rest.png)
+
+Detalle de la llamada REST, una fila por origen, destino y endpoint:
+
+| Origen | Destino | Endpoint | Fuente |
+|---|---|---|---|
+| gateway-graphql | ms-establecimientos | GET /establecimientos; GET /establecimientos/{id}/profesionales; GET /servicios; GET /servicios/{id}; POST /auth/verificar | `ConsultasController.java`, `AutenticacionController.java` |
+| gateway-graphql | ms-agenda | GET /citas; GET /disponibilidad; POST /citas; POST /citas/{id}/confirmacion; POST /citas/{id}/cierre; POST /citas/{id}/cancelacion | `ConsultasController.java` |
+| gateway-graphql | ms-operaciones | GET /inventario; GET /resumen | `ConsultasController.java` |
+| gateway-graphql | ms-relacion-cliente | GET /notificaciones; GET /clientes-inactivos | `ConsultasController.java` |
+| simulador | ms-establecimientos | POST /establecimientos; POST /establecimientos/{id}/profesionales; POST /servicios; POST /servicios/{id}/insumos | `SemillaDatos.java` |
+| simulador | ms-agenda | POST /citas; POST /citas/{id}/cierre; POST /citas/{id}/cancelacion | `GeneradorDeCitas.java` |
+| simulador | ms-operaciones | POST /inventario | `SemillaDatos.java` |
+| ms-operaciones | ms-establecimientos | GET /servicios/{id}/insumos | `CatalogoClient.java` |
+| ms-relacion-cliente | ms-establecimientos | GET /establecimientos | `EstablecimientosClient.java` |
+| ms-relacion-cliente | ms-agenda | GET /citas/proximas | `AgendaClient.java` |
 
 ## 2b. Topics de Kafka
 
