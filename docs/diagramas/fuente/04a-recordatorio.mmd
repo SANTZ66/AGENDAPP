@@ -1,0 +1,10 @@
+sequenceDiagram
+  participant J as GeneradorRecordatorios
+  participant C as Servicios consultados
+  participant S as RelacionService
+  Note over J: Cada 60 segundos
+  J->>C: Pide ventanas y citas próximas
+  C-->>J: Establecimientos y citas
+  Note over J: Dentro de la ventana y sin confirmar
+  J->>S: Registrar recordatorio
+  Note over S: Se guarda una sola vez por cita

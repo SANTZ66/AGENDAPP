@@ -1,44 +1,53 @@
-# 4. Flujo de recordatorio y confirmación
+# 4. Recordatorio y confirmación
+
+## 4a. Recordatorio automático
 
 ```mermaid
 sequenceDiagram
-  autonumber
   participant J as GeneradorRecordatorios
-  participant E as ms-establecimientos
-  participant A as ms-agenda
+  participant C as Servicios consultados
   participant S as RelacionService
+  Note over J: Cada 60 segundos
+  J->>C: Pide ventanas y citas próximas
+  C-->>J: Establecimientos y citas
+  Note over J: Dentro de la ventana y sin confirmar
+  J->>S: Registrar recordatorio
+  Note over S: Se guarda una sola vez por cita
+```
+
+![Recordatorio automático](img/04a-recordatorio.png)
+
+Regla: dentro de la ventana y sin confirmar, registra el recordatorio, una sola vez.
+
+| Mensaje del diagrama | Detalle técnico | Fuente |
+|---|---|---|
+| Cada 60 segundos | `@Scheduled` fixedDelay 60000 ms, espera inicial 30000 ms; activo por defecto (`RECORDATORIOS_ACTIVO:true`) | `GeneradorRecordatorios.java`, `application.properties` de ms-relacion-cliente |
+| Pide ventanas y citas próximas | «Servicios consultados» agrupa dos: `GET /establecimientos` (ventana de confirmación de cada uno, en ms-establecimientos) y `GET /citas/proximas?desde&hasta` (ms-agenda, paginada) | `EstablecimientosClient.java`, `AgendaClient.java`, `CitaController.java` |
+| Dentro de la ventana y sin confirmar | `ahora < inicio <= ahora + ventana` y `confirmadaEn` vacío; se omiten las confirmadas, las de establecimientos desconocidos y las fuera de ventana | `GeneradorRecordatorios.revisar()` |
+| Registrar recordatorio | `RelacionService.recordatorio()` llama a `registrar()`, tipo `recordatorio-cita` | `RelacionService.java` |
+| Se guarda una sola vez por cita | `existsByCitaIdAndTipo` y restricción `UNIQUE (cita_id, tipo)`; `DataIntegrityViolationException` se trata como ya registrada | `RelacionService.java`, `Notificacion.java` |
+
+## 4b. Confirmación de la clienta
+
+```mermaid
+sequenceDiagram
   participant C as Clienta
   participant G as gateway-graphql
-  Note over J: Cada 60 s (espera inicial 30 s)
-  J->>E: GET /establecimientos
-  E-->>J: ventana de confirmacion de cada uno
-  J->>A: GET /citas/proximas?desde&hasta
-  A-->>J: citas agendadas (paginadas)
-  loop cada cita
-    Note over J: Omite si ya esta confirmada,<br/>el establecimiento no se conoce<br/>o esta fuera de la ventana
-    J->>S: recordatorio(establecimientoId, citaId, inicio)
-    Note over S: registrar(): si ya existe (cita_id, tipo)<br/>no inserta (UNIQUE en BD lo garantiza)
-  end
-  C->>G: confirmarCita(citaId), sin sesion
-  G->>A: POST /citas/{id}/confirmacion
-  A-->>G: cita con confirmadaEn
-  G-->>C: Cita
+  participant A as ms-agenda
+  C->>G: confirmarCita(citaId)
+  G->>A: Confirmar la cita
+  A-->>G: Cita confirmada
+  G-->>C: Cita confirmada
   Note over A: No publica evento en Kafka
 ```
 
-![Recordatorio](img/04-recordatorio.png)
+![Confirmación de la clienta](img/04b-confirmacion.png)
 
-## Verificado contra
+| Mensaje del diagrama | Detalle técnico | Fuente |
+|---|---|---|
+| `confirmarCita(citaId)` | Mutación GraphQL pública, sin sesión | `ConsultasController.confirmarCita` (sin `Exigir`) |
+| Confirmar la cita | `POST /citas/{id}/confirmacion` en ms-agenda; es idempotente | `CitaController.java`, `CitaService.confirmar` |
+| Cita confirmada | Devuelve la cita con `confirmadaEn` | `CitaResponse` |
+| No publica evento en Kafka | `confirmar()` no llama a `publicar()` | `CitaService.java` |
 
-| Elemento | Dónde se comprobó |
-|---|---|
-| Job `GeneradorRecordatorios`, `@Scheduled` fixedDelay 60000 ms, espera inicial 30000 ms, activo por defecto (`RECORDATORIOS_ACTIVO:true`) | `GeneradorRecordatorios.java`, `application.properties` de ms-relacion-cliente |
-| `GET /establecimientos` para la ventana de confirmación de cada uno | `EstablecimientosClient.java` |
-| `GET /citas/proximas?desde&hasta&page&size` | `AgendaClient.java` y `CitaController.java` de ms-agenda |
-| Se omite si ya está confirmada, sin establecimiento conocido o fuera de la ventana | `GeneradorRecordatorios.revisar()` |
-| `recordatorio()` llama a `registrar()`, que consulta `existsByCitaIdAndTipo`; tipo `recordatorio-cita` | `RelacionService.java` |
-| `UNIQUE (cita_id, tipo)` (`notificacion_unica`); `DataIntegrityViolationException` se trata como ya registrada | `Notificacion.java`, `GeneradorRecordatorios.java` |
-| `confirmarCita` no exige sesión | `ConsultasController.confirmarCita` (sin `Exigir`) |
-| `POST /citas/{id}/confirmacion`; `confirmar()` es idempotente y no llama a `publicar()` | `CitaController.java`, `CitaService.confirmar` |
-
-Nota: el comentario de `GeneradorRecordatorios.java` dice «Por defecto está apagado», pero `application.properties` lo deja encendido. El diagrama sigue el valor real. El comentario no se modificó.
+Nota: el comentario de `GeneradorRecordatorios.java` dice «Por defecto está apagado», pero `application.properties` lo deja encendido. El diagrama sigue el valor real y el comentario no se modificó.

@@ -1,0 +1,9 @@
+sequenceDiagram
+  participant C as Clienta
+  participant G as gateway-graphql
+  participant A as ms-agenda
+  C->>G: confirmarCita(citaId)
+  G->>A: Confirmar la cita
+  A-->>G: Cita confirmada
+  G-->>C: Cita confirmada
+  Note over A: No publica evento en Kafka
